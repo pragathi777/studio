@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { provideDetailedFeedback } from "@/ai/flows/provide-detailed-feedback";
 import type { InterviewData } from "@/app/interview/page";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Download } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
