@@ -37,7 +37,7 @@ export default function InterviewPage() {
           <AptitudeStep
             onNext={(score) => {
               updateInterviewData({ aptitudeScore: score });
-              if (score >= 50) { // Cutoff score
+              if (score >= 70) { // Cutoff score
                 setCurrentStep("coding");
               } else {
                 setCurrentStep("failed");

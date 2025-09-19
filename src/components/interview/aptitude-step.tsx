@@ -29,7 +29,7 @@ const AptitudeStep: React.FC<AptitudeStepProps> = ({ onNext }) => {
   useEffect(() => {
     const fetchQuestions = async () => {
       try {
-        const result = await generateAptitudeQuestions({ numberOfQuestions: 5 });
+        const result = await generateAptitudeQuestions({ numberOfQuestions: 20 });
         const formattedQuestions = result.questions.map(q => ({
             ...q,
             // Creating dummy options for MCQ format

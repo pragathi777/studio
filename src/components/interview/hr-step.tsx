@@ -15,6 +15,7 @@ const HRStep: React.FC<HRStepProps> = ({ onNext }) => {
   const [isListening, setIsListening] = useState(false);
   const [conversation, setConversation] = useState<{ speaker: 'ai' | 'user'; text: string }[]>([]);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
 
   useEffect(() => {
     // Start webcam
@@ -29,6 +30,28 @@ const HRStep: React.FC<HRStepProps> = ({ onNext }) => {
         console.error("Error accessing media devices.", err);
       });
     
+    // Speech Recognition setup
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+
+      recognition.onresult = (event) => {
+        let interimTranscript = '';
+        let finalTranscript = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+            finalTranscript += event.results[i][0].transcript;
+          } else {
+            interimTranscript += event.results[i][0].transcript;
+          }
+        }
+        // For now, we'll just handle the final transcript when the user stops talking
+      };
+      recognitionRef.current = recognition;
+    }
+
     // Initial question from AI
     const startInterview = async () => {
         setConversation([{ speaker: 'ai', text: "Hello, I'm your HR interviewer today. Let's start with a brief introduction. Tell me about yourself." }]);
@@ -44,14 +67,35 @@ const HRStep: React.FC<HRStepProps> = ({ onNext }) => {
                 stream.getTracks().forEach(track => track.stop());
             }
         }
+        if (recognitionRef.current) {
+          recognitionRef.current.stop();
+        }
     }
   }, []);
 
-  const handleUserResponse = async () => {
-    setIsListening(false);
+  const handleToggleListening = () => {
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+    } else {
+      recognitionRef.current?.start();
+      setIsListening(true);
+      if (recognitionRef.current) {
+        recognitionRef.current.onend = () => {
+          // The user stopped talking. Get final transcript and send to AI.
+          setIsListening(false);
+          // This is a simplified logic. In a real app you'd get the final transcript from the onresult event
+          const lastUserResponse = "This is a simulated response from speech-to-text.";
+          handleUserResponse(lastUserResponse);
+        }
+      }
+    }
+  }
+
+
+  const handleUserResponse = async (userText: string) => {
     setIsLoading(true);
-    const lastUserResponse = "This is a simulated response. In a real scenario, this would be from speech-to-text.";
-    setConversation(prev => [...prev, { speaker: 'user', text: lastUserResponse }]);
+    setConversation(prev => [...prev, { speaker: 'user', text: userText }]);
 
     try {
       const response = await simulateHrInterview({
@@ -59,7 +103,7 @@ const HRStep: React.FC<HRStepProps> = ({ onNext }) => {
         jobTitle: "Software Engineer",
         candidateResume: "Experienced in React and Node.js",
         candidatePreviousAnswers: conversation.filter(c => c.speaker === 'user').map(c => c.text),
-        candidateNewAnswer: lastUserResponse,
+        candidateNewAnswer: userText,
       });
       setConversation(prev => [...prev, { speaker: 'ai', text: response.nextQuestion }]);
     } catch(e) {
@@ -105,11 +149,11 @@ const HRStep: React.FC<HRStepProps> = ({ onNext }) => {
         </CardContent>
         <CardFooter className="flex flex-col items-center justify-center gap-4 pt-4">
             <div className="flex gap-4">
-                <Button size="lg" className="rounded-full w-20 h-20" onClick={() => setIsListening(p => !p)}>
+                <Button size="lg" className="rounded-full w-20 h-20" onClick={handleToggleListening} disabled={!recognitionRef.current}>
                     {isListening ? <MicOff className="h-8 w-8" /> : <Mic className="h-8 w-8" />}
                 </Button>
                 {/* This button simulates speech-to-text for now */}
-                <Button onClick={handleUserResponse} disabled={isLoading}>Simulate Response</Button>
+                <Button onClick={() => handleUserResponse("This is a simulated response.")} disabled={isLoading}>Simulate Response</Button>
             </div>
            
             <Button onClick={() => onNext({})} className="w-full mt-4">End Interview & Get Feedback</Button>

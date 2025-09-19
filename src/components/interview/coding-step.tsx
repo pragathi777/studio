@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { Loader2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface CodingStepProps {
   onNext: (score: number) => void;
@@ -17,22 +18,50 @@ const problem = {
   example: `Input: "aaiperform"\nOutput: 1 (character 'i' at index 1)`
 };
 
+const languageTemplates = {
+    "python": "def solve(s):\n  # Your code here\n  return -1\n\nprint(solve(\"aaiperform\"))",
+    "java": "class Solution {\n    public int firstUniqChar(String s) {\n        // Your code here\n        return -1;\n    }\n\n    public static void main(String[] args) {\n        Solution sol = new Solution();\n        System.out.println(sol.firstUniqChar(\"aaiperform\"));\n    }\n}",
+    "c": "#include <stdio.h>\n#include <string.h>\n\nint firstUniqChar(char * s){\n    // Your code here\n    return -1;\n}\n\nint main() {\n    printf(\"%d\\n\", firstUniqChar(\"aaiperform\"));\n    return 0;\n}",
+    "cpp": "#include <iostream>\n#include <string>\n\nint firstUniqChar(std::string s) {\n    // Your code here\n    return -1;\n}\n\nint main() {\n    std::cout << firstUniqChar(\"aaiperform\") << std::endl;\n    return 0;\n}"
+}
+
+type Language = keyof typeof languageTemplates;
+
 const CodingStep: React.FC<CodingStepProps> = ({ onNext }) => {
-  const [code, setCode] = useState("");
+  const [language, setLanguage] = useState<Language>("python");
+  const [code, setCode] = useState(languageTemplates["python"]);
   const [output, setOutput] = useState("");
   const [isRunning, setIsRunning] = useState(false);
+
+  const handleLanguageChange = (lang: Language) => {
+      setLanguage(lang);
+      setCode(languageTemplates[lang]);
+      setOutput("");
+  }
 
   const handleRunCode = () => {
     setIsRunning(true);
     setOutput("Compiling...");
-    // Simulate compilation and execution
+    // Simulate compilation and execution based on language
     setTimeout(() => {
-      // This is a mock. A real implementation would run the code in a sandbox.
-      if (code.includes("aaiperform")) {
-        setOutput("Output: 1");
-      } else {
-        setOutput("Error: Your code did not produce the correct output for the example case.");
+      let mockOutput = "";
+      switch (language) {
+        case "python":
+            mockOutput = code.includes("return 1") || code.includes("print(1)") ? "1" : "Error or wrong output";
+            break;
+        case "java":
+            mockOutput = code.includes("return 1;") || code.includes("System.out.println(1)") ? "1" : "Error or wrong output";
+            break;
+        case "c":
+             mockOutput = code.includes("return 1;") || code.includes("printf(\"%d\", 1)") ? "1" : "Error or wrong output";
+            break;
+        case "cpp":
+            mockOutput = code.includes("return 1;") || code.includes("std::cout << 1") ? "1" : "Error or wrong output";
+            break;
+        default:
+            mockOutput = "Language not supported for mock execution."
       }
+      setOutput(`Output: ${mockOutput}`);
       setIsRunning(false);
     }, 2000);
   };
@@ -56,8 +85,21 @@ const CodingStep: React.FC<CodingStepProps> = ({ onNext }) => {
         </CardContent>
       </Card>
       <Card className="flex flex-col">
-        <CardHeader>
-          <CardTitle className="font-headline">Code Editor</CardTitle>
+        <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+                <CardTitle className="font-headline">Code Editor</CardTitle>
+            </div>
+            <Select value={language} onValueChange={(val) => handleLanguageChange(val as Language)}>
+                <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Select language" />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="python">Python</SelectItem>
+                    <SelectItem value="java">Java</SelectItem>
+                    <SelectItem value="c">C</SelectItem>
+                    <SelectItem value="cpp">C++</SelectItem>
+                </SelectContent>
+            </Select>
         </CardHeader>
         <CardContent className="flex-grow flex flex-col gap-4">
           <Textarea
