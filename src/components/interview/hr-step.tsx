@@ -16,6 +16,7 @@ const HRStep: React.FC<HRStepProps> = ({ onNext }) => {
   const [conversation, setConversation] = useState<{ speaker: 'ai' | 'user'; text: string }[]>([]);
   const videoRef = useRef<HTMLVideoElement>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const transcriptRef = useRef<string>("");
 
   useEffect(() => {
     // Start webcam
@@ -38,17 +39,25 @@ const HRStep: React.FC<HRStepProps> = ({ onNext }) => {
       recognition.interimResults = true;
 
       recognition.onresult = (event) => {
-        let interimTranscript = '';
         let finalTranscript = '';
         for (let i = event.resultIndex; i < event.results.length; ++i) {
           if (event.results[i].isFinal) {
             finalTranscript += event.results[i][0].transcript;
-          } else {
-            interimTranscript += event.results[i][0].transcript;
           }
         }
-        // For now, we'll just handle the final transcript when the user stops talking
+        if (finalTranscript) {
+          transcriptRef.current = finalTranscript;
+        }
       };
+      
+      recognition.onend = () => {
+          setIsListening(false);
+          if (transcriptRef.current) {
+            handleUserResponse(transcriptRef.current);
+            transcriptRef.current = "";
+          }
+      };
+
       recognitionRef.current = recognition;
     }
 
@@ -76,24 +85,16 @@ const HRStep: React.FC<HRStepProps> = ({ onNext }) => {
   const handleToggleListening = () => {
     if (isListening) {
       recognitionRef.current?.stop();
-      setIsListening(false);
     } else {
+      transcriptRef.current = "";
       recognitionRef.current?.start();
       setIsListening(true);
-      if (recognitionRef.current) {
-        recognitionRef.current.onend = () => {
-          // The user stopped talking. Get final transcript and send to AI.
-          setIsListening(false);
-          // This is a simplified logic. In a real app you'd get the final transcript from the onresult event
-          const lastUserResponse = "This is a simulated response from speech-to-text.";
-          handleUserResponse(lastUserResponse);
-        }
-      }
     }
   }
 
-
   const handleUserResponse = async (userText: string) => {
+    if(!userText || userText.trim() === "") return;
+    
     setIsLoading(true);
     setConversation(prev => [...prev, { speaker: 'user', text: userText }]);
 
@@ -148,13 +149,15 @@ const HRStep: React.FC<HRStepProps> = ({ onNext }) => {
           )}
         </CardContent>
         <CardFooter className="flex flex-col items-center justify-center gap-4 pt-4">
-            <div className="flex gap-4">
-                <Button size="lg" className="rounded-full w-20 h-20" onClick={handleToggleListening} disabled={!recognitionRef.current}>
-                    {isListening ? <MicOff className="h-8 w-8" /> : <Mic className="h-8 w-8" />}
-                </Button>
-                {/* This button simulates speech-to-text for now */}
-                <Button onClick={() => handleUserResponse("This is a simulated response.")} disabled={isLoading}>Simulate Response</Button>
-            </div>
+            <Button 
+                size="lg" 
+                className="rounded-full w-20 h-20" 
+                onClick={handleToggleListening} 
+                disabled={!recognitionRef.current || isLoading}
+                variant={isListening ? 'destructive' : 'default'}
+            >
+                {isListening ? <MicOff className="h-8 w-8" /> : <Mic className="h-8 w-8" />}
+            </Button>
            
             <Button onClick={() => onNext({})} className="w-full mt-4">End Interview & Get Feedback</Button>
         </CardFooter>
