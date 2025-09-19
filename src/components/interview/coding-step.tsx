@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { Loader2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { runCode } from "@/ai/flows/run-code";
 
 interface CodingStepProps {
   onNext: (score: number) => void;
@@ -39,37 +40,41 @@ const CodingStep: React.FC<CodingStepProps> = ({ onNext }) => {
       setOutput("");
   }
 
-  const handleRunCode = () => {
+  const handleRunCode = async () => {
     setIsRunning(true);
     setOutput("Compiling...");
-    // Simulate compilation and execution based on language
-    setTimeout(() => {
-      let mockOutput = "";
-      switch (language) {
-        case "python":
-            mockOutput = code.includes("return 1") || code.includes("print(1)") ? "1" : "Error or wrong output";
-            break;
-        case "java":
-            mockOutput = code.includes("return 1;") || code.includes("System.out.println(1)") ? "1" : "Error or wrong output";
-            break;
-        case "c":
-             mockOutput = code.includes("return 1;") || code.includes("printf(\"%d\", 1)") ? "1" : "Error or wrong output";
-            break;
-        case "cpp":
-            mockOutput = code.includes("return 1;") || code.includes("std::cout << 1") ? "1" : "Error or wrong output";
-            break;
-        default:
-            mockOutput = "Language not supported for mock execution."
-      }
-      setOutput(`Output: ${mockOutput}`);
-      setIsRunning(false);
-    }, 2000);
+    try {
+        const result = await runCode({ code, language });
+        if(result.error) {
+            setOutput(`Error:\n${result.error}`);
+        } else {
+            setOutput(`Output:\n${result.output}`);
+        }
+    } catch (error) {
+        console.error("Failed to run code:", error);
+        setOutput("An unexpected error occurred while running the code.");
+    } finally {
+        setIsRunning(false);
+    }
   };
 
-  const handleSubmit = () => {
-    // Mock scoring logic
-    const score = Math.random() > 0.3 ? 80 : 40; // 70% chance to pass
-    onNext(score);
+  const handleSubmit = async () => {
+    setIsRunning(true);
+    let score = 0;
+    try {
+        const result = await runCode({ code, language });
+        const correctAnswer = "1";
+        if (result.output.trim() === correctAnswer) {
+            score = 100;
+        } else {
+            score = 30; // Partial score for attempting
+        }
+    } catch (e) {
+        score = 10; // Low score for code that doesn't run
+    } finally {
+        setIsRunning(false);
+        onNext(score);
+    }
   };
 
   return (
@@ -119,7 +124,10 @@ const CodingStep: React.FC<CodingStepProps> = ({ onNext }) => {
             {isRunning && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Run Code
           </Button>
-          <Button onClick={handleSubmit}>Submit & Next</Button>
+          <Button onClick={handleSubmit} disabled={isRunning}>
+             {isRunning && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Submit & Next
+          </Button>
         </CardFooter>
       </Card>
     </div>
