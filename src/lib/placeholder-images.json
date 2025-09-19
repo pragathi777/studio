@@ -1,3 +1,10 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "login-hero",
+      "description": "A modern office setting with people collaborating.",
+      "imageUrl": "https://picsum.photos/seed/login-hero/1200/900",
+      "imageHint": "modern office"
+    }
+  ]
 }
