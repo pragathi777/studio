@@ -16,9 +16,10 @@ const HRStep: React.FC<HRStepProps> = ({ onNext }) => {
   const [conversation, setConversation] = useState<{ speaker: 'ai' | 'user'; text: string }[]>([]);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const transcriptRef = useRef<string>("");
+  const conversationEndRef = useRef<HTMLDivElement>(null);
+
 
   useEffect(() => {
-    // Speech Recognition setup
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SpeechRecognition) {
       const recognition = new SpeechRecognition();
@@ -28,52 +29,62 @@ const HRStep: React.FC<HRStepProps> = ({ onNext }) => {
       recognition.onresult = (event) => {
         let interimTranscript = '';
         for (let i = event.resultIndex; i < event.results.length; ++i) {
-            if (event.results[i].isFinal) {
-                transcriptRef.current += event.results[i][0].transcript + ' ';
-            } else {
-                interimTranscript += event.results[i][0].transcript;
-            }
+          if (event.results[i].isFinal) {
+            transcriptRef.current += event.results[i][0].transcript + ' ';
+          } else {
+            interimTranscript += event.results[i][0].transcript;
+          }
         }
       };
-      
+
       recognition.onend = () => {
-          setIsListening(false);
-          if (transcriptRef.current.trim()) {
-            handleUserResponse(transcriptRef.current.trim());
-          }
-          transcriptRef.current = "";
+        setIsListening(false);
+        const userText = transcriptRef.current.trim();
+        if (userText) {
+          const newConversation = [...conversation, { speaker: 'user' as const, text: userText }];
+          setConversation(newConversation);
+          getAiResponse(newConversation);
+        }
+        transcriptRef.current = "";
       };
 
       recognitionRef.current = recognition;
     }
 
-    // Initial question from AI
     const startInterview = async () => {
-        setIsLoading(true);
-        try {
-            const response = await simulateHrInterview({
-                candidateName: "John Doe",
-                jobTitle: "Software Engineer",
-                candidateResume: "Experienced in React and Node.js",
-                candidateNewAnswer: "Hi, I am ready to start.",
-            });
-            setConversation([{ speaker: 'ai', text: response.nextQuestion }]);
-        } catch (e) {
-            console.error(e);
-            setConversation([{ speaker: 'ai', text: "Hello, I'm your HR interviewer today. Let's start with a brief introduction. Tell me about yourself." }]);
-        } finally {
-            setIsLoading(false);
-        }
+        const initialConversation = [{ speaker: 'ai' as const, text: "Hello, I am ready to start." }];
+        setConversation(initialConversation);
+        getAiResponse(initialConversation);
     }
     startInterview();
 
-    // Cleanup
     return () => {
-        if (recognitionRef.current) {
-          recognitionRef.current.stop();
-        }
-    }
+      recognitionRef.current?.stop();
+    };
   }, []);
+
+  useEffect(() => {
+    conversationEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [conversation]);
+
+
+  const getAiResponse = async (currentConversation: typeof conversation) => {
+    setIsLoading(true);
+    try {
+      const response = await simulateHrInterview({
+        candidateName: "John Doe",
+        jobTitle: "Software Engineer",
+        candidateResume: "Experienced in React and Node.js",
+        interviewHistory: currentConversation.map(c => ({ speaker: c.speaker, text: c.text })),
+      });
+      setConversation(prev => [...prev, { speaker: 'ai', text: response.nextQuestion }]);
+    } catch (e) {
+      console.error(e);
+      setConversation(prev => [...prev, { speaker: 'ai', text: "Interesting. Can you tell me about a challenging project you worked on?" }]);
+    } finally {
+      setIsLoading(false);
+    }
+  }
 
   const handleToggleListening = () => {
     if (isListening) {
@@ -83,31 +94,7 @@ const HRStep: React.FC<HRStepProps> = ({ onNext }) => {
       recognitionRef.current?.start();
       setIsListening(true);
     }
-  }
-
-  const handleUserResponse = async (userText: string) => {
-    if(!userText || userText.trim() === "") return;
-    
-    setConversation(prev => [...prev, { speaker: 'user', text: userText }]);
-    setIsLoading(true);
-
-    try {
-      const response = await simulateHrInterview({
-        candidateName: "John Doe",
-        jobTitle: "Software Engineer",
-        candidateResume: "Experienced in React and Node.js",
-        candidatePreviousAnswers: conversation.map(c => `${c.speaker}: ${c.text}`),
-        candidateNewAnswer: userText,
-      });
-      setConversation(prev => [...prev, { speaker: 'ai', text: response.nextQuestion }]);
-    } catch(e) {
-      console.error(e);
-      setConversation(prev => [...prev, { speaker: 'ai', text: "Interesting. Can you tell me about a challenging project you worked on?" }]);
-    } finally {
-      setIsLoading(false);
-    }
   };
-
 
   return (
     <Card className="flex flex-col h-[70vh] w-full">
@@ -124,26 +111,27 @@ const HRStep: React.FC<HRStepProps> = ({ onNext }) => {
           </div>
         ))}
         {isLoading && conversation.length > 0 && (
-           <div className="flex justify-start">
-              <div className="p-3 rounded-lg bg-muted flex items-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin"/>
-                  <span>Thinking...</span>
-              </div>
+          <div className="flex justify-start">
+            <div className="p-3 rounded-lg bg-muted flex items-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span>Thinking...</span>
+            </div>
           </div>
         )}
+        <div ref={conversationEndRef} />
       </CardContent>
       <CardFooter className="flex flex-col items-center justify-center gap-4 pt-4 border-t">
-          <Button 
-              size="lg" 
-              className="rounded-full w-20 h-20" 
-              onClick={handleToggleListening} 
-              disabled={!recognitionRef.current || isLoading}
-              variant={isListening ? 'destructive' : 'default'}
-          >
-              {isListening ? <MicOff className="h-8 w-8" /> : <Mic className="h-8 w-8" />}
-          </Button>
-         
-          <Button onClick={() => onNext({})} className="w-full mt-4">End Interview & Get Feedback</Button>
+        <Button
+          size="lg"
+          className="rounded-full w-20 h-20"
+          onClick={handleToggleListening}
+          disabled={!recognitionRef.current || isLoading}
+          variant={isListening ? 'destructive' : 'default'}
+        >
+          {isListening ? <MicOff className="h-8 w-8" /> : <Mic className="h-8 w-8" />}
+        </Button>
+
+        <Button onClick={() => onNext({ conversation })} className="w-full mt-4">End Interview & Get Feedback</Button>
       </CardFooter>
     </Card>
   );

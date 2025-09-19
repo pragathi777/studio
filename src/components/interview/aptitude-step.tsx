@@ -13,7 +13,7 @@ interface AptitudeStepProps {
   onNext: (score: number) => void;
 }
 
-type Question = GenerateAptitudeQuestionsOutput["questions"][0] & { options: string[] };
+type Question = GenerateAptitudeQuestionsOutput["questions"][0];
 
 const shuffleArray = <T,>(array: T[]): T[] => {
     return [...array].sort(() => Math.random() - 0.5);
@@ -32,8 +32,7 @@ const AptitudeStep: React.FC<AptitudeStepProps> = ({ onNext }) => {
         const result = await generateAptitudeQuestions({ numberOfQuestions: 20 });
         const formattedQuestions = result.questions.map(q => ({
             ...q,
-            // Creating dummy options for MCQ format
-            options: shuffleArray([q.answer, "Dummy Option 1", "Dummy Option 2", "Dummy Option 3"])
+            options: shuffleArray(q.options)
         }));
         setQuestions(formattedQuestions);
       } catch (error) {
