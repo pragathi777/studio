@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Mic, MicOff } from "lucide-react";
 import { simulateHrInterview } from "@/ai/flows/simulate-hr-interview";
 
@@ -97,7 +97,7 @@ const HRStep: React.FC<HRStepProps> = ({ onNext }) => {
   };
 
   return (
-    <Card className="flex flex-col h-[70vh] w-full">
+    <Card className="flex flex-col w-full max-h-[85vh] h-full">
       <CardHeader>
         <CardTitle className="font-headline">HR Interview</CardTitle>
         <CardDescription>Speak clearly. The AI will ask follow-up questions based on your answers.</CardDescription>
