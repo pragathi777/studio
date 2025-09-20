@@ -26,7 +26,7 @@ export function Logo({ className }: { className?: string }) {
         />
       </svg>
       <h1 className="text-xl font-bold font-headline text-foreground">
-        AIPerform
+        InterviewAce
       </h1>
     </div>
   );

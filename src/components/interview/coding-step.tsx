@@ -16,14 +16,14 @@ interface CodingStepProps {
 const problem = {
   title: "Find the First Non-Repeating Character",
   description: "Given a string, find the first non-repeating character in it and return its index. If it doesn't exist, return -1.",
-  example: `Input: "aaiperform"\nOutput: 1 (character 'i' at index 1)`
+  example: `Input: "interviewace"\nOutput: 1 (character 'n' at index 1)`
 };
 
 const languageTemplates = {
-    "python": "def solve(s):\n  # Your code here\n  return -1\n\nprint(solve(\"aaiperform\"))",
-    "java": "class Solution {\n    public int firstUniqChar(String s) {\n        // Your code here\n        return -1;\n    }\n\n    public static void main(String[] args) {\n        Solution sol = new Solution();\n        System.out.println(sol.firstUniqChar(\"aaiperform\"));\n    }\n}",
-    "c": "#include <stdio.h>\n#include <string.h>\n\nint firstUniqChar(char * s){\n    // Your code here\n    return -1;\n}\n\nint main() {\n    printf(\"%d\\n\", firstUniqChar(\"aaiperform\"));\n    return 0;\n}",
-    "cpp": "#include <iostream>\n#include <string>\n\nint firstUniqChar(std::string s) {\n    // Your code here\n    return -1;\n}\n\nint main() {\n    std::cout << firstUniqChar(\"aaiperform\") << std::endl;\n    return 0;\n}"
+    "python": "def solve(s):\n  # Your code here\n  return -1\n\nprint(solve(\"interviewace\"))",
+    "java": "class Solution {\n    public int firstUniqChar(String s) {\n        // Your code here\n        return -1;\n    }\n\n    public static void main(String[] args) {\n        Solution sol = new Solution();\n        System.out.println(sol.firstUniqChar(\"interviewace\"));\n    }\n}",
+    "c": "#include <stdio.h>\n#include <string.h>\n\nint firstUniqChar(char * s){\n    // Your code here\n    return -1;\n}\n\nint main() {\n    printf(\"%d\\n\", firstUniqChar(\"interviewace\"));\n    return 0;\n}",
+    "cpp": "#include <iostream>\n#include <string>\n\nint firstUniqChar(std::string s) {\n    // Your code here\n    return -1;\n}\n\nint main() {\n    std::cout << firstUniqChar(\"interviewace\") << std::endl;\n    return 0;\n}"
 }
 
 type Language = keyof typeof languageTemplates;

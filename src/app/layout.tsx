@@ -3,7 +3,7 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
 
 export const metadata: Metadata = {
-  title: 'AIPerform: AI-Powered Mock Interviews',
+  title: 'InterviewAce: AI-Powered Mock Interviews',
   description: 'An advanced platform for AI-powered mock interviews to help you ace your next job.',
 };
 
