@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Loader2, Mic, MicOff } from "lucide-react";
 import { simulateHrInterview } from "@/ai/flows/simulate-hr-interview";
 
@@ -52,9 +52,8 @@ const HRStep: React.FC<HRStepProps> = ({ onNext }) => {
     }
 
     const startInterview = async () => {
-        const initialConversation = [{ speaker: 'ai' as const, text: "Hello, I am ready to start." }];
-        setConversation(initialConversation);
-        getAiResponse(initialConversation);
+        // Start with an empty conversation and get the first question.
+        getAiResponse([]);
     }
     startInterview();
 
@@ -118,6 +117,14 @@ const HRStep: React.FC<HRStepProps> = ({ onNext }) => {
             </div>
           </div>
         )}
+         {isLoading && conversation.length === 0 && (
+          <div className="flex justify-center">
+            <div className="p-3 rounded-lg bg-muted flex items-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span>Preparing the first question...</span>
+            </div>
+          </div>
+        )}
         <div ref={conversationEndRef} />
       </CardContent>
       <CardFooter className="flex flex-col items-center justify-center gap-4 pt-4 border-t">
@@ -131,7 +138,7 @@ const HRStep: React.FC<HRStepProps> = ({ onNext }) => {
           {isListening ? <MicOff className="h-8 w-8" /> : <Mic className="h-8 w-8" />}
         </Button>
 
-        <Button onClick={() => onNext({ conversation })} className="w-full mt-4">End Interview & Get Feedback</Button>
+        <Button onClick={() => onNext({ conversation: conversation })} className="w-full mt-4">End Interview & Get Feedback</Button>
       </CardFooter>
     </Card>
   );

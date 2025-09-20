@@ -49,6 +49,26 @@ const FeedbackStep: React.FC<FeedbackStepProps> = ({ interviewData }) => {
       </div>
     );
   }
+  
+  const renderMarkdown = (markdown: string) => {
+    return markdown.split('\n').map((line, index) => {
+      if (line.startsWith('### ')) {
+        return <h3 key={index} className="text-lg font-semibold mt-4 mb-2 text-foreground">{line.substring(4)}</h3>;
+      }
+      if (line.startsWith('**')) {
+        const bolded = line.replace(/\*\*/g, '');
+        return <p key={index}><strong className="text-foreground">{bolded}</strong></p>;
+      }
+      if (line.startsWith('- ')) {
+        return <li key={index} className="list-disc ml-6">{line.substring(2)}</li>;
+      }
+      if (line.trim() === '') {
+        return <br key={index} />;
+      }
+      return <p key={index} className="my-1">{line}</p>;
+    });
+  }
+
 
   return (
     <Card className="w-full shadow-lg">
@@ -85,12 +105,7 @@ const FeedbackStep: React.FC<FeedbackStepProps> = ({ interviewData }) => {
                 <CardTitle className="text-xl">Detailed Feedback</CardTitle>
             </CardHeader>
             <CardContent className="prose dark:prose-invert max-w-none text-sm text-muted-foreground">
-                {feedbackResult?.feedbackReport.split('\n').map((paragraph, i) => {
-                    if (paragraph.startsWith('###')) return <h3 key={i} className="font-semibold text-foreground text-lg mt-4 mb-2">{paragraph.replace(/###/g, '')}</h3>
-                    if (paragraph.startsWith('**')) return <p key={i} className="font-semibold text-foreground my-1">{paragraph.replace(/\*\*/g, '')}</p>
-                    if (paragraph.startsWith('-')) return <li key={i} className="ml-4 list-disc">{paragraph.substring(1)}</li>
-                    return <p key={i}>{paragraph}</p>
-                })}
+                {feedbackResult ? renderMarkdown(feedbackResult.feedbackReport) : 'No feedback available.'}
             </CardContent>
         </Card>
       </CardContent>
