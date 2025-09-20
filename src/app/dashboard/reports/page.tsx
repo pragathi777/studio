@@ -75,9 +75,9 @@ export default function ReportsPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Role</TableHead>
-              <TableHead>Date</TableHead>
+              <TableHead className="hidden sm:table-cell">Date</TableHead>
               <TableHead className="text-right">Score</TableHead>
-              <TableHead className="text-center">Status</TableHead>
+              <TableHead className="hidden md:table-cell text-center">Status</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -87,11 +87,11 @@ export default function ReportsPage() {
                 <TableCell>
                   <div className="font-medium">{interview.role}</div>
                 </TableCell>
-                <TableCell>{interview.date}</TableCell>
+                <TableCell className="hidden sm:table-cell">{interview.date}</TableCell>
                 <TableCell className="text-right">
                   {interview.score}/100
                 </TableCell>
-                <TableCell className="text-center">
+                <TableCell className="hidden md:table-cell text-center">
                   <Badge variant="outline" className="text-sm">
                     {interview.status}
                   </Badge>

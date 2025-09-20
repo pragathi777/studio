@@ -45,7 +45,7 @@ const pastInterviews = [
 export default function DashboardPage() {
   return (
     <div className="flex flex-1 flex-col gap-4 md:gap-8">
-      <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-2">
         <Card className="flex flex-col">
           <CardHeader>
             <CardTitle className="font-headline">Start a New Mock Interview</CardTitle>
@@ -115,7 +115,7 @@ export default function DashboardPage() {
             </CardDescription>
           </div>
           <Button asChild size="sm" className="ml-auto gap-1">
-            <Link href="#">
+            <Link href="/dashboard/reports">
               View All
               <ArrowUpRight className="h-4 w-4" />
             </Link>
@@ -126,9 +126,9 @@ export default function DashboardPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Role</TableHead>
-                <TableHead>Date</TableHead>
+                <TableHead className="hidden sm:table-cell">Date</TableHead>
                 <TableHead className="text-right">Score</TableHead>
-                <TableHead className="text-center">Status</TableHead>
+                <TableHead className="hidden md:table-cell text-center">Status</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -138,9 +138,9 @@ export default function DashboardPage() {
                   <TableCell>
                     <div className="font-medium">{interview.role}</div>
                   </TableCell>
-                  <TableCell>{interview.date}</TableCell>
+                  <TableCell className="hidden sm:table-cell">{interview.date}</TableCell>
                   <TableCell className="text-right">{interview.score}/100</TableCell>
-                  <TableCell className="text-center">
+                  <TableCell className="hidden md:table-cell text-center">
                     <Badge variant="outline" className="text-sm">{interview.status}</Badge>
                   </TableCell>
                   <TableCell className="text-right">
