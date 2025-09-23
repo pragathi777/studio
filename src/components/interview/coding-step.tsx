@@ -66,8 +66,11 @@ const CodingStep: React.FC<CodingStepProps> = ({ onNext }) => {
         const correctAnswer = "1";
         if (result.output.trim() === correctAnswer) {
             score = 100;
-        } else {
-            score = 30; // Partial score for attempting
+        } else if (result.error) {
+            score = 10; // Low score for code that doesn't run
+        }
+        else {
+            score = 30; // Partial score for attempting but wrong answer
         }
     } catch (e) {
         score = 10; // Low score for code that doesn't run
@@ -78,7 +81,7 @@ const CodingStep: React.FC<CodingStepProps> = ({ onNext }) => {
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-[70vh]">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-[80vh]">
       <Card className="flex flex-col">
         <CardHeader>
           <CardTitle className="font-headline">{problem.title}</CardTitle>
@@ -111,12 +114,12 @@ const CodingStep: React.FC<CodingStepProps> = ({ onNext }) => {
             value={code}
             onChange={(e) => setCode(e.target.value)}
             placeholder="Write your code here..."
-            className="flex-grow font-code h-full"
+            className="flex-grow font-code h-full bg-black text-white"
           />
           <Separator />
-          <div className="h-24">
+          <div className="h-32">
             <p className="font-semibold mb-2">Output</p>
-            <pre className="bg-muted p-2 rounded-md text-sm font-code h-full overflow-auto">{output}</pre>
+            <pre className="bg-black text-white p-2 rounded-md text-sm font-code h-full overflow-auto">{output}</pre>
           </div>
         </CardContent>
         <CardFooter className="justify-end gap-2">
