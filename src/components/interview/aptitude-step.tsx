@@ -1,13 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { generateAptitudeQuestions, GenerateAptitudeQuestionsOutput } from "@/ai/flows/generate-aptitude-questions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { Loader2 } from "lucide-react";
+import { Loader2, Timer } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 interface AptitudeStepProps {
   onNext: (score: number) => void;
@@ -25,6 +26,29 @@ const AptitudeStep: React.FC<AptitudeStepProps> = ({ onNext }) => {
   const [selectedAnswer, setSelectedAnswer] = useState<string>("");
   const [userAnswers, setUserAnswers] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [timeLeft, setTimeLeft] = useState(25 * 60); // 25 minutes in seconds
+  const [showTimeoutAlert, setShowTimeoutAlert] = useState(false);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const calculateAndSubmit = () => {
+    if (timerRef.current) {
+        clearInterval(timerRef.current);
+    }
+    let score = 0;
+    const answersToScore = [...userAnswers];
+    if (currentQuestionIndex < questions.length && selectedAnswer) {
+        answersToScore[currentQuestionIndex] = selectedAnswer;
+    }
+
+    questions.forEach((question, index) => {
+      if (answersToScore[index] === question.answer) {
+        score++;
+      }
+    });
+    
+    const percentageScore = (score / questions.length) * 100;
+    onNext(percentageScore);
+  };
 
   useEffect(() => {
     const fetchQuestions = async () => {
@@ -37,7 +61,6 @@ const AptitudeStep: React.FC<AptitudeStepProps> = ({ onNext }) => {
         setQuestions(formattedQuestions);
       } catch (error) {
         console.error("Failed to generate questions:", error);
-        // Fallback questions
         const fallbackQuestions: Question[] = [
             { question: 'What is 2+2?', answer: '4', type: 'mathematical', options: ['3', '4', '5', '6'] },
             { question: 'What is the capital of India?', answer: 'New Delhi', type: 'verbal', options: ['Mumbai', 'Kolkata', 'New Delhi', 'Chennai'] },
@@ -50,24 +73,37 @@ const AptitudeStep: React.FC<AptitudeStepProps> = ({ onNext }) => {
     fetchQuestions();
   }, []);
 
+  useEffect(() => {
+    if (!isLoading && questions.length > 0) {
+      timerRef.current = setInterval(() => {
+        setTimeLeft((prevTime) => {
+          if (prevTime <= 1) {
+            clearInterval(timerRef.current!);
+            setShowTimeoutAlert(true);
+            return 0;
+          }
+          return prevTime - 1;
+        });
+      }, 1000);
+    }
+
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, [isLoading, questions.length]);
+
   const handleNextQuestion = () => {
     const newAnswers = [...userAnswers];
     newAnswers[currentQuestionIndex] = selectedAnswer;
     setUserAnswers(newAnswers);
-    setSelectedAnswer("");
+    setSelectedAnswer(userAnswers[currentQuestionIndex + 1] || "");
 
     if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
     } else {
-      // End of quiz, calculate score
-      let score = 0;
-      newAnswers.forEach((answer, index) => {
-        if (answer === questions[index].answer) {
-          score++;
-        }
-      });
-      const percentageScore = (score / questions.length) * 100;
-      onNext(percentageScore);
+      calculateAndSubmit();
     }
   };
 
@@ -86,31 +122,63 @@ const AptitudeStep: React.FC<AptitudeStepProps> = ({ onNext }) => {
 
   const currentQuestion = questions[currentQuestionIndex];
   const progress = ((currentQuestionIndex + 1) / questions.length) * 100;
+  const minutes = Math.floor(timeLeft / 60);
+  const seconds = timeLeft % 60;
 
   return (
+    <>
     <Card className="w-full">
       <CardHeader>
-        <CardTitle className="font-headline">Aptitude Round</CardTitle>
-        <CardDescription>Question {currentQuestionIndex + 1} of {questions.length} ({currentQuestion.type})</CardDescription>
+        <div className="flex justify-between items-center">
+            <div>
+                <CardTitle className="font-headline">Aptitude Round</CardTitle>
+                <CardDescription>Question {currentQuestionIndex + 1} of {questions.length} ({currentQuestion.type})</CardDescription>
+            </div>
+            <div className="flex items-center gap-2 text-lg font-semibold text-primary">
+                <Timer className="h-6 w-6" />
+                <span>{String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}</span>
+            </div>
+        </div>
         <Progress value={progress} className="mt-2"/>
       </CardHeader>
       <CardContent>
         <p className="font-semibold text-lg mb-6">{currentQuestion.question}</p>
         <RadioGroup value={selectedAnswer} onValueChange={setSelectedAnswer}>
           {currentQuestion.options.map((option, index) => (
-            <div key={index} className="flex items-center space-x-2">
+            <div key={index} className="flex items-center space-x-2 p-2 rounded-md hover:bg-muted transition-colors">
               <RadioGroupItem value={option} id={`option-${index}`} />
-              <Label htmlFor={`option-${index}`} className="text-base">{option}</Label>
+              <Label htmlFor={`option-${index}`} className="text-base flex-1 cursor-pointer">{option}</Label>
             </div>
           ))}
         </RadioGroup>
       </CardContent>
-      <CardFooter>
-        <Button onClick={handleNextQuestion} disabled={!selectedAnswer} className="ml-auto">
+      <CardFooter className="justify-between">
+        <Button 
+            variant="outline"
+            onClick={() => setCurrentQuestionIndex(p => Math.max(0, p-1))}
+            disabled={currentQuestionIndex === 0}
+        >
+            Previous
+        </Button>
+        <Button onClick={handleNextQuestion} disabled={!selectedAnswer}>
           {currentQuestionIndex < questions.length - 1 ? "Next Question" : "Finish"}
         </Button>
       </CardFooter>
     </Card>
+    <AlertDialog open={showTimeoutAlert}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+            <AlertDialogTitle>Time's Up!</AlertDialogTitle>
+            <AlertDialogDescription>
+                The timer for the aptitude round has expired. Your test will now be submitted with the answers you have provided.
+            </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+            <AlertDialogAction onClick={calculateAndSubmit}>Continue</AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 };
 
