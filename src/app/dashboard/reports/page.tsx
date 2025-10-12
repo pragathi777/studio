@@ -19,7 +19,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useCollection, useUser, useFirestore, useMemoFirebase } from "@/firebase";
-import { useMemo } from "react";
 import { collection, query, orderBy } from "firebase/firestore";
 import { format } from "date-fns";
 

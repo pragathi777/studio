@@ -20,17 +20,15 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useCollection } from "@/firebase";
-import { useUser } from "@/firebase/provider";
-import { useMemo } from "react";
+import { useUser, useFirestore, useMemoFirebase } from "@/firebase/provider";
 import { collection, query, orderBy, limit } from "firebase/firestore";
-import { useFirestore } from "@/firebase/provider";
 import { format } from "date-fns";
 
 export default function DashboardPage() {
   const { user } = useUser();
   const firestore = useFirestore();
 
-  const interviewsQuery = useMemo(() => {
+  const interviewsQuery = useMemoFirebase(() => {
     if (!user) return null;
     return query(
       collection(firestore, "users", user.uid, "interviewSessions"),
