@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -7,7 +8,7 @@ import { Loader2, Mic, MicOff } from "lucide-react";
 import { simulateHrInterview } from "@/ai/flows/simulate-hr-interview";
 
 interface HRStepProps {
-  onNext: (analysis: any) => void;
+  onNext: (analysis: { conversation: { speaker: 'ai' | 'user'; text: string }[] }) => void;
 }
 
 const HRStep: React.FC<HRStepProps> = ({ onNext }) => {
@@ -99,7 +100,7 @@ const HRStep: React.FC<HRStepProps> = ({ onNext }) => {
     <Card className="flex flex-col w-full max-h-[85vh] h-full">
       <CardHeader>
         <CardTitle className="font-headline">HR Interview</CardTitle>
-        <CardDescription>Speak clearly. The AI will ask follow-up questions based on your answers.</CardDescription>
+        <CardDescription>The AI will ask questions. Click the mic to speak your answer.</CardDescription>
       </CardHeader>
       <CardContent className="flex-grow overflow-y-auto space-y-4 p-6">
         {conversation.map((entry, index) => (
