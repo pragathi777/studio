@@ -59,6 +59,8 @@ const AptitudeStep: React.FC<AptitudeStepProps> = ({ onNext }) => {
             options: shuffleArray(q.options)
         }));
         setQuestions(formattedQuestions);
+        // Initialize userAnswers with empty strings
+        setUserAnswers(Array(result.questions.length).fill(""));
       } catch (error) {
         console.error("Failed to generate questions:", error);
         const fallbackQuestions: Question[] = [
@@ -66,6 +68,7 @@ const AptitudeStep: React.FC<AptitudeStepProps> = ({ onNext }) => {
             { question: 'What is the capital of India?', answer: 'New Delhi', type: 'verbal', options: ['Mumbai', 'Kolkata', 'New Delhi', 'Chennai'] },
         ];
         setQuestions(fallbackQuestions);
+        setUserAnswers(Array(fallbackQuestions.length).fill(""));
       } finally {
         setIsLoading(false);
       }
@@ -93,17 +96,28 @@ const AptitudeStep: React.FC<AptitudeStepProps> = ({ onNext }) => {
       }
     };
   }, [isLoading, questions.length]);
-
+  
   const handleNextQuestion = () => {
     const newAnswers = [...userAnswers];
     newAnswers[currentQuestionIndex] = selectedAnswer;
     setUserAnswers(newAnswers);
-    setSelectedAnswer(userAnswers[currentQuestionIndex + 1] || "");
-
+    
     if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
+      setSelectedAnswer(newAnswers[currentQuestionIndex + 1] || "");
     } else {
       calculateAndSubmit();
+    }
+  };
+
+  const handlePreviousQuestion = () => {
+    if (currentQuestionIndex > 0) {
+        const newAnswers = [...userAnswers];
+        newAnswers[currentQuestionIndex] = selectedAnswer;
+        setUserAnswers(newAnswers);
+        
+        setCurrentQuestionIndex(currentQuestionIndex - 1);
+        setSelectedAnswer(newAnswers[currentQuestionIndex - 1] || "");
     }
   };
 
@@ -155,7 +169,7 @@ const AptitudeStep: React.FC<AptitudeStepProps> = ({ onNext }) => {
       <CardFooter className="justify-between">
         <Button 
             variant="outline"
-            onClick={() => setCurrentQuestionIndex(p => Math.max(0, p-1))}
+            onClick={handlePreviousQuestion}
             disabled={currentQuestionIndex === 0}
         >
             Previous

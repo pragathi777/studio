@@ -53,7 +53,8 @@ export default function InterviewPage() {
               if (score >= 60) { // Cutoff score
                 setCurrentStep("hr");
               } else {
-                setCurrentStep("failed");
+                // Instead of 'failed', go to 'feedback'
+                setCurrentStep("feedback");
               }
             }}
           />
