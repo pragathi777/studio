@@ -1,0 +1,173 @@
+/**
+ * @file Firestore Security Rules for AIPerform Platform
+ *
+ * @description This ruleset enforces a strict user-ownership model, ensuring that only the authenticated user can access their own data.
+ *   All data is nested under `/users/{userId}`, and subcollections inherit this ownership. This eliminates the need for `get()` calls in security rules, crucial for maintaining atomic operations and debuggability.
+ *
+ * @dataStructure
+ *   - /users/{userId}: Stores user profiles. Only the user can read/write their own profile.
+ *   - /users/{userId}/interviewSessions/{interviewSessionId}: Stores interview sessions for each user. Only the user can read/write their own sessions.
+ *   - /users/{userId}/interviewSessions/{interviewSessionId}/aptitudeRounds/{aptitudeRoundId}: Stores aptitude round data. Only the user can read/write.
+ *   - /users/{userId}/interviewSessions/{interviewSessionId}/codingRounds/{codingRoundId}: Stores coding round data. Only the user can read/write.
+ *   - /users/{userId}/interviewSessions/{interviewSessionId}/hrRounds/{hrRoundId}: Stores HR round data. Only the user can read/write.
+ *   - /users/{userId}/interviewSessions/{interviewSessionId}/feedbackReports/{feedbackReportId}: Stores feedback reports. Only the user can read/write.
+ *   - /users/{userId}/interviewSessions/{interviewSessionId}/screenRecordings/{screenRecordingId}: Stores screen recordings. Only the user can read/write.
+ *
+ * @keySecurityDecisions
+ *   - User listing is disallowed to protect privacy.
+ *   - All write operations are restricted to the owner of the data, enforced through path-based ownership.
+ *   - Data validation is minimal to allow for rapid prototyping and schema evolution.  Only authorization-critical fields are validated.
+ *
+ * @denormalizationForAuthorization
+ *   - The `userId` is present in the path for all subcollections, enabling simple `isOwner(userId)` checks without needing to read the document.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Checks if the request is made by an authenticated user.
+     * @returns {boolean} True if the user is signed in, false otherwise.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * @description Checks if the authenticated user's ID matches the provided userId.
+     * @param {string} userId - The user ID to compare against the authenticated user's ID.
+     * @returns {boolean} True if the user is the owner, false otherwise.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /**
+     * @description Checks if the authenticated user is the owner and the resource exists.
+     * @param {string} userId - The user ID to compare against the authenticated user's ID.
+     * @returns {boolean} True if the user is the owner and the resource exists, false otherwise.
+     */
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
+    }
+
+    /**
+     * @description Rules for user profiles.
+     * @path /users/{userId}
+     * @allow (create) - Authenticated user creates their own profile with matching userId.
+     * @allow (get, update, delete) - Authenticated user accesses their own profile.
+     * @deny (create) - Attempt to create a profile for a different user.
+     * @deny (get, update, delete) - Attempt to access another user's profile.
+     * @principle Enforces document ownership for all operations on user profiles.
+     */
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Rules for interview sessions for a specific user.
+     * @path /users/{userId}/interviewSessions/{interviewSessionId}
+     * @allow (create) - Authenticated user creates an interview session under their profile.
+     * @allow (get, update, delete) - Authenticated user accesses their own interview sessions.
+     * @deny (create) - Attempt to create an interview session for a different user.
+     * @deny (get, update, delete) - Attempt to access another user's interview sessions.
+     * @principle Enforces document ownership for all operations on interview sessions.
+     */
+    match /users/{userId}/interviewSessions/{interviewSessionId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Rules for aptitude rounds within an interview session.
+     * @path /users/{userId}/interviewSessions/{interviewSessionId}/aptitudeRounds/{aptitudeRoundId}
+     * @allow (create) - Authenticated user creates an aptitude round under their interview session.
+     * @allow (get, update, delete) - Authenticated user accesses their own aptitude rounds.
+     * @deny (create) - Attempt to create an aptitude round for a different user or session.
+     * @deny (get, update, delete) - Attempt to access another user's aptitude rounds.
+     * @principle Enforces document ownership for all operations on aptitude rounds.
+     */
+    match /users/{userId}/interviewSessions/{interviewSessionId}/aptitudeRounds/{aptitudeRoundId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.interviewSessionId == interviewSessionId;
+      allow update: if isExistingOwner(userId) && request.resource.data.interviewSessionId == resource.data.interviewSessionId;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Rules for coding rounds within an interview session.
+     * @path /users/{userId}/interviewSessions/{interviewSessionId}/codingRounds/{codingRoundId}
+     * @allow (create) - Authenticated user creates a coding round under their interview session.
+     * @allow (get, update, delete) - Authenticated user accesses their own coding rounds.
+     * @deny (create) - Attempt to create a coding round for a different user or session.
+     * @deny (get, update, delete) - Attempt to access another user's coding rounds.
+     * @principle Enforces document ownership for all operations on coding rounds.
+     */
+    match /users/{userId}/interviewSessions/{interviewSessionId}/codingRounds/{codingRoundId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.interviewSessionId == interviewSessionId;
+      allow update: if isExistingOwner(userId) && request.resource.data.interviewSessionId == resource.data.interviewSessionId;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Rules for HR rounds within an interview session.
+     * @path /users/{userId}/interviewSessions/{interviewSessionId}/hrRounds/{hrRoundId}
+     * @allow (create) - Authenticated user creates an HR round under their interview session.
+     * @allow (get, update, delete) - Authenticated user accesses their own HR rounds.
+     * @deny (create) - Attempt to create an HR round for a different user or session.
+     * @deny (get, update, delete) - Attempt to access another user's HR rounds.
+     * @principle Enforces document ownership for all operations on HR rounds.
+     */
+    match /users/{userId}/interviewSessions/{interviewSessionId}/hrRounds/{hrRoundId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.interviewSessionId == interviewSessionId;
+      allow update: if isExistingOwner(userId) && request.resource.data.interviewSessionId == resource.data.interviewSessionId;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Rules for feedback reports within an interview session.
+     * @path /users/{userId}/interviewSessions/{interviewSessionId}/feedbackReports/{feedbackReportId}
+     * @allow (create) - Authenticated user creates a feedback report under their interview session.
+     * @allow (get, update, delete) - Authenticated user accesses their own feedback reports.
+     * @deny (create) - Attempt to create a feedback report for a different user or session.
+     * @deny (get, update, delete) - Attempt to access another user's feedback reports.
+     * @principle Enforces document ownership for all operations on feedback reports.
+     */
+    match /users/{userId}/interviewSessions/{interviewSessionId}/feedbackReports/{feedbackReportId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.interviewSessionId == interviewSessionId;
+      allow update: if isExistingOwner(userId) && request.resource.data.interviewSessionId == resource.data.interviewSessionId;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Rules for screen recordings within an interview session.
+     * @path /users/{userId}/interviewSessions/{interviewSessionId}/screenRecordings/{screenRecordingId}
+     * @allow (create) - Authenticated user creates a screen recording under their interview session.
+     * @allow (get, update, delete) - Authenticated user accesses their own screen recordings.
+     * @deny (create) - Attempt to create a screen recording for a different user or session.
+     * @deny (get, update, delete) - Attempt to access another user's screen recordings.
+     * @principle Enforces document ownership for all operations on screen recordings.
+     */
+    match /users/{userId}/interviewSessions/{interviewSessionId}/screenRecordings/{screenRecordingId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.interviewSessionId == interviewSessionId;
+      allow update: if isExistingOwner(userId) && request.resource.data.interviewSessionId == resource.data.interviewSessionId;
+      allow delete: if isExistingOwner(userId);
+    }
+  }
+}
