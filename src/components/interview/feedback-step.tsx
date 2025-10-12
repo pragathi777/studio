@@ -10,17 +10,23 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
+import { useFirestore } from "@/firebase/provider";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { addDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+
 
 interface FeedbackStepProps {
   interviewData: InterviewData;
+  userId: string;
 }
 
-const FeedbackStep: React.FC<FeedbackStepProps> = ({ interviewData }) => {
+const FeedbackStep: React.FC<FeedbackStepProps> = ({ interviewData, userId }) => {
   const [feedbackResult, setFeedbackResult] = useState<ProvideDetailedFeedbackOutput | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const firestore = useFirestore();
 
   useEffect(() => {
-    const getFeedback = async () => {
+    const getFeedbackAndSave = async () => {
       try {
         const result = await provideDetailedFeedback({
             aptitudeScore: interviewData.aptitudeScore,
@@ -28,8 +34,27 @@ const FeedbackStep: React.FC<FeedbackStepProps> = ({ interviewData }) => {
             hrConversation: interviewData.hrAnalysis?.conversation,
         });
         setFeedbackResult(result);
+
+        if (userId && firestore) {
+          const interviewSessionsRef = collection(firestore, 'users', userId, 'interviewSessions');
+          
+          const sessionData = {
+            userId,
+            jobTitle: interviewData.jobTitle,
+            startTime: serverTimestamp(),
+            endTime: serverTimestamp(),
+            overallScore: result.overallScore,
+            aptitudeScore: interviewData.aptitudeScore,
+            codingScore: interviewData.codingScore,
+            feedbackReport: result.feedbackReport,
+            // You can add more data from hrAnalysis if needed
+          };
+          
+          addDocumentNonBlocking(interviewSessionsRef, sessionData);
+        }
+
       } catch (error) {
-        console.error("Failed to generate feedback:", error);
+        console.error("Failed to generate or save feedback:", error);
         setFeedbackResult({ 
             feedbackReport: "There was an error generating your feedback report. Please try again later.",
             overallScore: 0
@@ -38,8 +63,8 @@ const FeedbackStep: React.FC<FeedbackStepProps> = ({ interviewData }) => {
         setIsLoading(false);
       }
     };
-    getFeedback();
-  }, [interviewData]);
+    getFeedbackAndSave();
+  }, [interviewData, userId, firestore]);
 
   if (isLoading) {
     return (
@@ -51,23 +76,15 @@ const FeedbackStep: React.FC<FeedbackStepProps> = ({ interviewData }) => {
   }
   
   const renderMarkdown = (markdown: string) => {
+    // A simple markdown to JSX renderer
     return markdown.split('\n').map((line, index) => {
-      if (line.startsWith('### ')) {
-        return <h3 key={index} className="text-lg font-semibold mt-4 mb-2 text-foreground">{line.substring(4)}</h3>;
-      }
-      if (line.startsWith('**')) {
-        const bolded = line.replace(/\*\*/g, '');
-        return <p key={index}><strong className="text-foreground">{bolded}</strong></p>;
-      }
-      if (line.startsWith('- ')) {
-        return <li key={index} className="list-disc ml-6">{line.substring(2)}</li>;
-      }
-      if (line.trim() === '') {
-        return <br key={index} />;
-      }
-      return <p key={index} className="my-1">{line}</p>;
+        if (line.startsWith('### ')) return <h3 key={index} className="text-lg font-semibold mt-4 mb-2 text-foreground">{line.substring(4)}</h3>;
+        if (line.startsWith('**')) return <p key={index} className="my-1"><strong className="font-semibold text-foreground">{line.replace(/\*\*/g, '')}</strong></p>;
+        if (line.startsWith('- ')) return <li key={index} className="list-disc ml-6">{line.substring(2)}</li>;
+        if (line.trim() === '') return <br key={index} />;
+        return <p key={index} className="my-1">{line}</p>;
     });
-  }
+};
 
 
   return (

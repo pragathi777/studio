@@ -1,15 +1,13 @@
 {
   "entities": {
     "User": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "User",
       "type": "object",
-      "description": "Represents a user of the AIPerform platform.",
+      "description": "Represents a user of the InterviewAce platform.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the user.",
-          "format": "uuid"
+          "description": "Unique identifier for the user (Firebase Auth UID)."
         },
         "email": {
           "type": "string",
@@ -27,25 +25,21 @@
         }
       },
       "required": [
-        "id",
-        "email",
-        "name",
-        "signupDate"
+        "id"
       ]
     },
     "InterviewSession": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "InterviewSession",
       "type": "object",
       "description": "Represents a single interview session for a user.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the interview session."
-        },
         "userId": {
           "type": "string",
-          "description": "Reference to the User who took this interview. (Relationship: User 1:N InterviewSession)"
+          "description": "Reference to the User who took this interview."
+        },
+        "jobTitle": {
+            "type": "string",
+            "description": "The job title for which the interview was taken."
         },
         "startTime": {
           "type": "string",
@@ -61,209 +55,24 @@
           "type": "number",
           "description": "Overall performance score for the interview session."
         },
-        "tabSwitchCount": {
-          "type": "number",
-          "description": "Number of times the candidate switched tabs during the interview."
+        "aptitudeScore": {
+            "type": "number",
+            "description": "Score from the aptitude round."
+        },
+        "codingScore": {
+            "type": "number",
+            "description": "Score from the coding round."
+        },
+        "feedbackReport": {
+            "type": "string",
+            "description": "The detailed feedback report in Markdown format."
         }
       },
       "required": [
-        "id",
         "userId",
+        "jobTitle",
         "startTime",
-        "endTime",
-        "overallScore",
-        "tabSwitchCount"
-      ]
-    },
-    "AptitudeRound": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "AptitudeRound",
-      "type": "object",
-      "description": "Represents the aptitude round of an interview session.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the aptitude round."
-        },
-        "interviewSessionId": {
-          "type": "string",
-          "description": "Reference to the InterviewSession this round belongs to. (Relationship: InterviewSession 1:N AptitudeRound)"
-        },
-        "score": {
-          "type": "number",
-          "description": "Score obtained in the aptitude round."
-        },
-        "cutoff": {
-          "type": "number",
-          "description": "Cutoff score for the aptitude round."
-        },
-        "qualified": {
-          "type": "boolean",
-          "description": "Indicates whether the candidate qualified for the next round."
-        }
-      },
-      "required": [
-        "id",
-        "interviewSessionId",
-        "score",
-        "cutoff",
-        "qualified"
-      ]
-    },
-    "CodingRound": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "CodingRound",
-      "type": "object",
-      "description": "Represents the coding round of an interview session.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the coding round."
-        },
-        "interviewSessionId": {
-          "type": "string",
-          "description": "Reference to the InterviewSession this round belongs to. (Relationship: InterviewSession 1:N CodingRound)"
-        },
-        "problemStatement": {
-          "type": "string",
-          "description": "The coding problem statement presented to the candidate."
-        },
-        "codeSubmitted": {
-          "type": "string",
-          "description": "The code submitted by the candidate."
-        },
-        "compilationErrors": {
-          "type": "string",
-          "description": "Any compilation errors encountered during the round."
-        },
-        "passed": {
-          "type": "boolean",
-          "description": "Indicates whether the candidate passed the coding round."
-        }
-      },
-      "required": [
-        "id",
-        "interviewSessionId",
-        "problemStatement",
-        "codeSubmitted",
-        "compilationErrors",
-        "passed"
-      ]
-    },
-    "HrRound": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "HrRound",
-      "type": "object",
-      "description": "Represents the HR interview round of an interview session.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the HR round."
-        },
-        "interviewSessionId": {
-          "type": "string",
-          "description": "Reference to the InterviewSession this round belongs to. (Relationship: InterviewSession 1:N HrRound)"
-        },
-        "verbalClarityScore": {
-          "type": "number",
-          "description": "Score for the verbal clarity of the candidate."
-        },
-        "relevanceScore": {
-          "type": "number",
-          "description": "Score for the relevance of the answers provided by the candidate."
-        },
-        "confidenceLevel": {
-          "type": "number",
-          "description": "The confidence level detected from speech."
-        },
-        "followUpQuestions": {
-          "type": "array",
-          "description": "The list of follow up questions that were asked.",
-          "items": {
-            "type": "string"
-          }
-        }
-      },
-      "required": [
-        "id",
-        "interviewSessionId",
-        "verbalClarityScore",
-        "relevanceScore",
-        "confidenceLevel",
-        "followUpQuestions"
-      ]
-    },
-    "FeedbackReport": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "FeedbackReport",
-      "type": "object",
-      "description": "Represents the feedback report generated after the interview session.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the feedback report."
-        },
-        "interviewSessionId": {
-          "type": "string",
-          "description": "Reference to the InterviewSession this report belongs to. (Relationship: InterviewSession 1:1 FeedbackReport)"
-        },
-        "overallFeedback": {
-          "type": "string",
-          "description": "Overall feedback for the candidate."
-        },
-        "areasForImprovement": {
-          "type": "string",
-          "description": "Specific areas where the candidate needs improvement."
-        },
-        "confidenceLevel": {
-          "type": "number",
-          "description": "Overall confidence level of the candidate."
-        }
-      },
-      "required": [
-        "id",
-        "interviewSessionId",
-        "overallFeedback",
-        "areasForImprovement",
-        "confidenceLevel"
-      ]
-    },
-    "ScreenRecording": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "ScreenRecording",
-      "type": "object",
-      "description": "Represents a screen recording captured during the interview session.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the screen recording."
-        },
-        "interviewSessionId": {
-          "type": "string",
-          "description": "Reference to the InterviewSession this recording belongs to. (Relationship: InterviewSession 1:N ScreenRecording)"
-        },
-        "recordingUrl": {
-          "type": "string",
-          "description": "URL where the screen recording is stored.",
-          "format": "uri"
-        },
-        "startTime": {
-          "type": "string",
-          "description": "Timestamp for the start of the screen recording.",
-          "format": "date-time"
-        },
-        "endTime": {
-          "type": "string",
-          "description": "Timestamp for the end of the screen recording.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "interviewSessionId",
-        "recordingUrl",
-        "startTime",
-        "endTime"
+        "overallScore"
       ]
     }
   },
@@ -274,164 +83,17 @@
     ]
   },
   "firestore": {
-    "structure": [
-      {
-        "path": "/users/{userId}",
-        "definition": {
-          "entityName": "User",
-          "schema": {
-            "$ref": "#/backend/entities/User"
-          },
-          "description": "Stores user profiles. Path-based ownership enforced via security rules.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user."
-            }
-          ]
-        }
+      "/users/{userId}": {
+        "schema": {
+          "$ref": "#/entities/User"
+        },
+        "description": "Stores user profile information. The document ID is the Firebase Auth UID."
       },
-      {
-        "path": "/users/{userId}/interviewSessions/{interviewSessionId}",
-        "definition": {
-          "entityName": "InterviewSession",
-          "schema": {
-            "$ref": "#/backend/entities/InterviewSession"
-          },
-          "description": "Stores interview sessions for each user. Path-based ownership enforced. Represents a User 1:N InterviewSession relationship.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user."
-            },
-            {
-              "name": "interviewSessionId",
-              "description": "The unique identifier for the interview session."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/users/{userId}/interviewSessions/{interviewSessionId}/aptitudeRounds/{aptitudeRoundId}",
-        "definition": {
-          "entityName": "AptitudeRound",
-          "schema": {
-            "$ref": "#/backend/entities/AptitudeRound"
-          },
-          "description": "Stores aptitude round data for a specific interview session. Path-based ownership. Represents a InterviewSession 1:N AptitudeRound relationship.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user."
-            },
-            {
-              "name": "interviewSessionId",
-              "description": "The unique identifier for the interview session."
-            },
-            {
-              "name": "aptitudeRoundId",
-              "description": "The unique identifier for the aptitude round."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/users/{userId}/interviewSessions/{interviewSessionId}/codingRounds/{codingRoundId}",
-        "definition": {
-          "entityName": "CodingRound",
-          "schema": {
-            "$ref": "#/backend/entities/CodingRound"
-          },
-          "description": "Stores coding round data for a specific interview session. Path-based ownership. Represents a InterviewSession 1:N CodingRound relationship.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user."
-            },
-            {
-              "name": "interviewSessionId",
-              "description": "The unique identifier for the interview session."
-            },
-            {
-              "name": "codingRoundId",
-              "description": "The unique identifier for the coding round."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/users/{userId}/interviewSessions/{interviewSessionId}/hrRounds/{hrRoundId}",
-        "definition": {
-          "entityName": "HrRound",
-          "schema": {
-            "$ref": "#/backend/entities/HrRound"
-          },
-          "description": "Stores HR round data for a specific interview session. Path-based ownership. Represents a InterviewSession 1:N HrRound relationship.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user."
-            },
-            {
-              "name": "interviewSessionId",
-              "description": "The unique identifier for the interview session."
-            },
-            {
-              "name": "hrRoundId",
-              "description": "The unique identifier for the HR round."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/users/{userId}/interviewSessions/{interviewSessionId}/feedbackReports/{feedbackReportId}",
-        "definition": {
-          "entityName": "FeedbackReport",
-          "schema": {
-            "$ref": "#/backend/entities/FeedbackReport"
-          },
-          "description": "Stores feedback reports for a specific interview session. Path-based ownership. Represents a InterviewSession 1:1 FeedbackReport relationship.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user."
-            },
-            {
-              "name": "interviewSessionId",
-              "description": "The unique identifier for the interview session."
-            },
-            {
-              "name": "feedbackReportId",
-              "description": "The unique identifier for the feedback report."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/users/{userId}/interviewSessions/{interviewSessionId}/screenRecordings/{screenRecordingId}",
-        "definition": {
-          "entityName": "ScreenRecording",
-          "schema": {
-            "$ref": "#/backend/entities/ScreenRecording"
-          },
-          "description": "Stores screen recordings for a specific interview session. Path-based ownership. Represents a InterviewSession 1:N ScreenRecording relationship.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user."
-            },
-            {
-              "name": "interviewSessionId",
-              "description": "The unique identifier for the interview session."
-            },
-            {
-              "name": "screenRecordingId",
-              "description": "The unique identifier for the screen recording."
-            }
-          ]
-        }
+      "/users/{userId}/interviewSessions/{sessionId}": {
+        "schema": {
+          "$ref": "#/entities/InterviewSession"
+        },
+        "description": "Stores individual interview session reports for each user."
       }
-    ],
-    "reasoning": "The Firestore structure is designed to support the AI-powered mock interview platform (AIPerform) while adhering to the core design principles. The primary goal is Authorization Independence, achieved through path-based ownership. This eliminates the need for `get()` calls in security rules, crucial for maintaining atomic operations and debuggability.\n\n1.  **User Data:** User data is stored under `/users/{userId}`. This implements Path-Based ownership, simplifying security rules related to user-specific data. This allows each user to only access its own data.\n2.  **Interview Sessions:** Interview Sessions are stored under `/users/{userId}/interviewSessions/{interviewSessionId}`. The `interviewSession` documents are nested under the `users` collection to represent a `User` 1:N `InterviewSession` relationship, making it very secure because it uses path-based ownership. Each round and related data is then stored under this path, which is consistent with the path-based ownership model.\n3.  **Aptitude, Coding, and HR Rounds:** The aptitude, coding, and HR rounds are stored as subcollections under the `/users/{userId}/interviewSessions/{interviewSessionId}` path (e.g., `/users/{userId}/interviewSessions/{interviewSessionId}/aptitudeRounds/{aptitudeRoundId}`). This continues the hierarchical path structure for entities nested under the `InterviewSession`. This maintains clear ownership and simplifies security rules.\n4.  **Feedback Reports and Screen Recordings:** Feedback reports and screen recordings are stored as subcollections under the respective interview sessions, which follows the same pattern as the rounds. The path is: `/users/{userId}/interviewSessions/{interviewSessionId}/feedbackReports/{feedbackReportId}` and `/users/{userId}/interviewSessions/{interviewSessionId}/screenRecordings/{screenRecordingId}`.\n\nThis structure inherently supports QAPs (Rules are not Filters) because list operations can be easily secured based on the path. For example, listing interview sessions is restricted to the owner of the user ID in the URL path. By avoiding any reliance on data content within the documents, our queries are efficient and secure."
   }
 }

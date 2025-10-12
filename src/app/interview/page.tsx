@@ -11,25 +11,40 @@ import { Logo } from "@/components/logo";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { useUser } from "@/firebase";
 
 type InterviewStep = "welcome" | "aptitude" | "aptitude-results" | "coding" | "hr" | "feedback" | "failed";
 
+export type HRAnalysis = {
+  conversation: { speaker: 'user' | 'ai'; text: string }[];
+}
+
 export type InterviewData = {
+  jobTitle: string;
   aptitudeScore?: number;
   codingScore?: number;
-  hrAnalysis?: any;
+  hrAnalysis?: HRAnalysis;
   finalFeedback?: string;
+  overallScore?: number;
 };
 
 export default function InterviewPage() {
   const [currentStep, setCurrentStep] = useState<InterviewStep>("welcome");
-  const [interviewData, setInterviewData] = useState<InterviewData>({});
+  const [interviewData, setInterviewData] = useState<InterviewData>({ jobTitle: 'Software Engineer' });
+  const { user, isUserLoading } = useUser();
 
   const updateInterviewData = (data: Partial<InterviewData>) => {
     setInterviewData((prev) => ({ ...prev, ...data }));
   };
 
   const renderStep = () => {
+    if (isUserLoading) {
+      return <div>Loading user...</div>
+    }
+    if (!user) {
+      return <div>Please sign in to start an interview.</div>
+    }
+    
     switch (currentStep) {
       case "welcome":
         return <WelcomeStep onNext={() => setCurrentStep("aptitude")} />;
@@ -79,7 +94,7 @@ export default function InterviewPage() {
           />
         );
       case "feedback":
-        return <FeedbackStep interviewData={interviewData} />;
+        return <FeedbackStep interviewData={interviewData} userId={user.uid} />;
       case "failed":
         return (
             <Card className="text-center">

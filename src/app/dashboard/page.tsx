@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { ArrowUpRight, Bot, Code, BrainCircuit } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -17,32 +19,28 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-
-const pastInterviews = [
-  {
-    id: "INV001",
-    role: "Frontend Developer",
-    date: "2023-06-23",
-    score: 85,
-    status: "Completed",
-  },
-  {
-    id: "INV002",
-    role: "Backend Developer",
-    date: "2023-06-20",
-    score: 72,
-    status: "Completed",
-  },
-  {
-    id: "INV003",
-    role: "Full Stack Engineer",
-    date: "2023-06-15",
-    score: 91,
-    status: "Completed",
-  },
-];
+import { useCollection } from "@/firebase";
+import { useUser } from "@/firebase/provider";
+import { useMemo } from "react";
+import { collection, query, orderBy, limit } from "firebase/firestore";
+import { useFirestore } from "@/firebase/provider";
+import { format } from "date-fns";
 
 export default function DashboardPage() {
+  const { user } = useUser();
+  const firestore = useFirestore();
+
+  const interviewsQuery = useMemo(() => {
+    if (!user) return null;
+    return query(
+      collection(firestore, "users", user.uid, "interviewSessions"),
+      orderBy("startTime", "desc"),
+      limit(5)
+    );
+  }, [firestore, user]);
+
+  const { data: pastInterviews, isLoading } = useCollection(interviewsQuery);
+
   return (
     <div className="flex flex-1 flex-col gap-4 md:gap-8">
       <div className="grid gap-4 md:grid-cols-2">
@@ -133,19 +131,31 @@ export default function DashboardPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {pastInterviews.map((interview) => (
+              {isLoading && (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center">Loading reports...</TableCell>
+                </TableRow>
+              )}
+              {!isLoading && pastInterviews && pastInterviews.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center">No past interviews found.</TableCell>
+                </TableRow>
+              )}
+              {pastInterviews && pastInterviews.map((interview) => (
                 <TableRow key={interview.id}>
                   <TableCell>
-                    <div className="font-medium">{interview.role}</div>
+                    <div className="font-medium">{interview.jobTitle || 'N/A'}</div>
                   </TableCell>
-                  <TableCell className="hidden sm:table-cell">{interview.date}</TableCell>
-                  <TableCell className="text-right">{interview.score}/100</TableCell>
+                  <TableCell className="hidden sm:table-cell">
+                    {interview.startTime ? format(new Date(interview.startTime.seconds * 1000), "PPP") : 'N/A'}
+                  </TableCell>
+                  <TableCell className="text-right">{interview.overallScore?.toFixed(0) ?? 'N/A'}/100</TableCell>
                   <TableCell className="hidden md:table-cell text-center">
-                    <Badge variant="outline" className="text-sm">{interview.status}</Badge>
+                    <Badge variant="outline" className="text-sm">Completed</Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button variant="outline" size="sm">
-                      View Report
+                    <Button asChild variant="outline" size="sm">
+                       <Link href={`/dashboard/reports/${interview.id}`}>View Report</Link>
                     </Button>
                   </TableCell>
                 </TableRow>
