@@ -3,6 +3,7 @@
 import { useState } from "react";
 import WelcomeStep from "@/components/interview/welcome-step";
 import AptitudeStep from "@/components/interview/aptitude-step";
+import AptitudeResultsStep from "@/components/interview/aptitude-results-step";
 import CodingStep from "@/components/interview/coding-step";
 import HRStep from "@/components/interview/hr-step";
 import FeedbackStep from "@/components/interview/feedback-step";
@@ -11,7 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
-type InterviewStep = "welcome" | "aptitude" | "coding" | "hr" | "feedback" | "failed";
+type InterviewStep = "welcome" | "aptitude" | "aptitude-results" | "coding" | "hr" | "feedback" | "failed";
 
 export type InterviewData = {
   aptitudeScore?: number;
@@ -37,14 +38,23 @@ export default function InterviewPage() {
           <AptitudeStep
             onNext={(score) => {
               updateInterviewData({ aptitudeScore: score });
-              if (score >= 70) { // Cutoff score
-                setCurrentStep("coding");
-              } else {
-                setCurrentStep("failed");
-              }
+              setCurrentStep("aptitude-results");
             }}
           />
         );
+      case "aptitude-results":
+        return (
+            <AptitudeResultsStep 
+                score={interviewData.aptitudeScore || 0}
+                onNext={() => {
+                    if ((interviewData.aptitudeScore || 0) >= 70) {
+                        setCurrentStep("coding");
+                    } else {
+                        setCurrentStep("failed");
+                    }
+                }}
+            />
+        )
       case "coding":
         return (
           <CodingStep
@@ -97,7 +107,7 @@ export default function InterviewPage() {
       <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-card px-6">
         <Logo />
         <div className="flex items-center gap-4">
-          <span className="text-sm text-muted-foreground capitalize">{currentStep} Round</span>
+          <span className="text-sm text-muted-foreground capitalize">{currentStep.replace('-', ' ')} Round</span>
         </div>
       </header>
       <main className="flex-grow flex items-center justify-center p-6">
