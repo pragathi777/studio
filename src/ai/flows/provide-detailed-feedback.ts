@@ -34,7 +34,7 @@ export type ProvideDetailedFeedbackInput = z.infer<
 >;
 
 const ProvideDetailedFeedbackOutputSchema = z.object({
-  feedbackReport: z.string().describe('A detailed, comprehensive, and constructive feedback report for the candidate in Markdown format.'),
+  feedbackReport: z.string().describe('A concise feedback report in Markdown with a few key strengths and areas for improvement.'),
   overallScore: z.number().describe("The candidate's overall weighted score for the entire interview (out of 100)."),
 });
 
@@ -52,47 +52,33 @@ const prompt = ai.definePrompt({
   name: 'provideDetailedFeedbackPrompt',
   input: {schema: ProvideDetailedFeedbackInputSchema},
   output: {schema: ProvideDetailedFeedbackOutputSchema},
-  prompt: `You are an AI-powered career coach providing detailed, expert feedback to a candidate after a mock interview. Your feedback must be comprehensive, constructive, and highly actionable.
+  prompt: `You are an AI career coach providing concise, actionable feedback after a mock interview.
 
   **Candidate's Performance Data:**
-
-  - **Aptitude Score:** {{aptitudeScore}}%
-  - **Coding Score:** {{codingScore}}%
+  - Aptitude Score: {{aptitudeScore}}%
+  - Coding Score: {{codingScore}}%
   {{#if proctoringAnalysis}}
-  - **Confidence Level (from video analysis):** {{proctoringAnalysis.confidenceLevel}} / 1
-  - **Engagement Level (from video analysis):** {{proctoringAnalysis.engagementLevel}} / 1
-  - **Proctoring Flags:** {{proctoringAnalysis.tabSwitches}} tab switches. {{proctoringAnalysis.proctoringSummary}}
+  - Proctoring Flags: {{proctoringAnalysis.tabSwitches}} tab switches. {{proctoringAnalysis.proctoringSummary}}
   {{/if}}
-
-  - **HR Interview Transcript:**
+  - HR Interview Transcript:
   {{#each hrConversation}}
     {{#if (eq speaker 'user')}}Candidate: {{else}}Interviewer: {{/if}}{{{text}}}
   {{/each}}
 
   **Your Task:**
 
-  1.  **Calculate Overall Score (Weighted):**
-      - **HR Interview (40%):** Critically analyze the transcript. Evaluate clarity, confidence, relevance, and STAR method usage. Convert this to a score out of 100. Be strict but fair.
-      - **Coding Round (30%):** Use the provided score.
-      - **Aptitude Round (30%):** Use the provided score.
-      - Calculate the final weighted score, ensuring it accurately reflects the performance in each area.
-      - If proctoring flags exist (tab switches > 0 or malpractice detected in video), apply a penalty to the overall score. A minor infraction might be a 5-10 point deduction, while significant cheating should result in a score of 0.
+  1.  **Calculate Overall Score:**
+      - Weighting: HR (40%), Coding (30%), Aptitude (30%).
+      - Analyze the HR transcript for clarity, confidence, and relevance to determine a score out of 100.
+      - Apply a penalty for proctoring flags (e.g., -10 points for tab switches).
+      - Calculate the final weighted score.
 
-  2.  **Generate In-Depth Feedback Report (Markdown Format):**
-      - **Overall Summary:** Start with a concise summary and the final overall score.
-      - **Proctoring Report:** If any malpractice was detected (tab switching or from video analysis), start with this section. Clearly state what was detected (e.g., "The system detected that you switched tabs 3 times during the assessment.").
-      - **Strengths (Be Specific):** Identify 2-3 key strengths with concrete examples. Instead of "Good communication," say "You demonstrated strong verbal communication by clearly articulating your thought process when answering behavioral questions, such as when you described the project architecture."
-      - **Critical Areas for Improvement (Actionable & Evidenced):** This is the most important section.
-        - For each area (at least 2-3), provide **specific, actionable advice**.
-        - Give **direct examples** from the interview data (coding performance, aptitude results, or quotes from the HR transcript).
-        - Suggest **targeted resources**: "To improve on data structures, focus on HashMap and LinkedList problems on LeetCode (Medium difficulty)." or "Review the STAR method for behavioral questions; your answer about teamwork lacked a clear Result section."
-      - **Round-by-Round Breakdown:**
-        - **Aptitude Round:** Briefly comment on the score and highlight specific areas of strength or weakness if possible.
-        - **Coding Round:** Comment on the score. A low score might indicate a need to review specific algorithms.
-        - **HR Interview Analysis:** This must be the most detailed section. Analyze the candidate's answers for structure, content, and delivery. Comment on their communication style, confidence (referencing video analysis if available), and ability to handle follow-up questions. Quote parts of their answers to illustrate your points precisely.
-      - **Concluding Remarks:** End on a positive and motivational note, reinforcing the idea that this feedback is a tool for growth.
+  2.  **Generate Feedback Report (Markdown):**
+      - **### Key Strengths:** List 2-3 bullet points on what the candidate did well.
+      - **### Areas for Improvement:** List 2-3 specific, actionable bullet points for improvement. Provide brief examples.
+      - Keep the entire report concise and easy to read.
 
-  Your tone must be that of a supportive, expert career coach. The goal is to empower the candidate with accurate insights to succeed in their next real interview.
+  Your tone must be supportive and expert. The goal is to provide clear insights for growth.
   `,
   customize: (prompt) => {
     prompt.options = {

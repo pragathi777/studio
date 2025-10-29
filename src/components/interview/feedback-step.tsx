@@ -28,6 +28,7 @@ const FeedbackStep: React.FC<FeedbackStepProps> = ({ interviewData, userId }) =>
 
   useEffect(() => {
     const getFeedbackAndSave = async () => {
+      setIsLoading(true);
       try {
         const result = await provideDetailedFeedback({
             aptitudeScore: interviewData.aptitudeScore,
@@ -43,13 +44,13 @@ const FeedbackStep: React.FC<FeedbackStepProps> = ({ interviewData, userId }) =>
           const sessionData = {
             userId,
             jobTitle: interviewData.jobTitle,
-            startTime: serverTimestamp(),
-            endTime: serverTimestamp(),
+            startTime: serverTimestamp(), // This will be set on the server
+            endTime: serverTimestamp(), // This will be set on the server
             overallScore: result.overallScore,
-            aptitudeScore: interviewData.aptitudeScore,
-            codingScore: interviewData.codingScore,
+            aptitudeScore: interviewData.aptitudeScore ?? null,
+            codingScore: interviewData.codingScore ?? null,
             feedbackReport: result.feedbackReport,
-            proctoringAnalysis: interviewData.proctoringAnalysis,
+            proctoringAnalysis: interviewData.proctoringAnalysis ?? null,
           };
           
           addDocumentNonBlocking(interviewSessionsRef, sessionData);
@@ -68,15 +69,6 @@ const FeedbackStep: React.FC<FeedbackStepProps> = ({ interviewData, userId }) =>
     getFeedbackAndSave();
   }, [interviewData, userId, firestore]);
 
-  if (isLoading) {
-    return (
-      <div className="flex flex-col items-center gap-4">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="text-muted-foreground">Analyzing your performance and generating feedback...</p>
-      </div>
-    );
-  }
-  
   const renderMarkdown = (markdown: string) => {
     // A simple markdown to JSX renderer
     return markdown.split('\n').map((line, index) => {
@@ -89,43 +81,55 @@ const FeedbackStep: React.FC<FeedbackStepProps> = ({ interviewData, userId }) =>
 };
 
 
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center gap-4">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <p className="text-muted-foreground">Analyzing your performance and generating final report...</p>
+      </div>
+    );
+  }
+  
   return (
     <Card className="w-full shadow-lg">
       <CardHeader>
         <CardTitle className="text-3xl font-headline text-center">Interview Performance Report</CardTitle>
-        <CardDescription className="text-center pt-2">Here's a detailed breakdown of your performance.</CardDescription>
+        <CardDescription className="text-center pt-2">Here's a breakdown of your performance.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <Card>
             <CardHeader>
-                <CardTitle className="text-xl">Overall Score: {feedbackResult?.overallScore ?? 0}/100</CardTitle>
+                <CardTitle className="text-xl">Overall Score: {feedbackResult?.overallScore?.toFixed(0) ?? 'N/A'}/100</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="grid md:grid-cols-2 gap-6">
                 <div>
-                    <Label>Aptitude Round: {interviewData.aptitudeScore ?? 0}%</Label>
+                    <Label>Aptitude Round</Label>
                     <Progress value={interviewData.aptitudeScore ?? 0} className="mt-1" />
+                    <p className="text-sm text-muted-foreground mt-1">{interviewData.aptitudeScore?.toFixed(0) ?? 'N/A'}%</p>
                 </div>
                 <div>
-                    <Label>Coding Round: {interviewData.codingScore ?? 0}%</Label>
+                    <Label>Coding Round</Label>
                     <Progress value={interviewData.codingScore ?? 0} className="mt-1" />
+                     <p className="text-sm text-muted-foreground mt-1">{interviewData.codingScore?.toFixed(0) ?? 'N/A'}%</p>
                 </div>
-                 <div>
+                 <div className="md:col-span-2">
                     <Label>Proctoring Analysis</Label>
-                    <div className="flex gap-2 mt-2">
+                    <div className="flex flex-wrap gap-2 mt-2">
                         {interviewData.proctoringAnalysis?.malpracticeDetected ? (
                            <Badge variant="destructive"><AlertTriangle className="mr-1 h-3 w-3" /> Malpractice Flagged</Badge>
                         ) : (
                             <Badge variant="secondary">No Issues Detected</Badge>
                         )}
-                        <Badge variant="secondary">Confidence: {((interviewData.proctoringAnalysis?.confidenceLevel ?? 0) * 100).toFixed(0)}%</Badge>
-                         <Badge variant="secondary">Engagement: {((interviewData.proctoringAnalysis?.engagementLevel ?? 0) * 100).toFixed(0)}%</Badge>
+                        <Badge variant="outline">Confidence: {((interviewData.proctoringAnalysis?.confidenceLevel ?? 0) * 100).toFixed(0)}%</Badge>
+                        <Badge variant="outline">Engagement: {((interviewData.proctoringAnalysis?.engagementLevel ?? 0) * 100).toFixed(0)}%</Badge>
+                        <Badge variant="outline">Tab Switches: {interviewData.proctoringAnalysis?.tabSwitches ?? 0}</Badge>
                     </div>
                 </div>
             </CardContent>
         </Card>
         <Card>
             <CardHeader>
-                <CardTitle className="text-xl">Detailed Feedback</CardTitle>
+                <CardTitle className="text-xl">AI Feedback & Suggestions</CardTitle>
             </CardHeader>
             <CardContent className="prose dark:prose-invert max-w-none text-sm text-muted-foreground">
                 {feedbackResult ? renderMarkdown(feedbackResult.feedbackReport) : 'No feedback available.'}
