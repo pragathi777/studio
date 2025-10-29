@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -26,7 +27,7 @@ const AptitudeStep: React.FC<AptitudeStepProps> = ({ onNext }) => {
   const [selectedAnswer, setSelectedAnswer] = useState<string>("");
   const [userAnswers, setUserAnswers] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [timeLeft, setTimeLeft] = useState(25 * 60); // 25 minutes in seconds
+  const [timeLeft, setTimeLeft] = useState(15 * 60); // 15 minutes in seconds
   const [showTimeoutAlert, setShowTimeoutAlert] = useState(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -53,7 +54,7 @@ const AptitudeStep: React.FC<AptitudeStepProps> = ({ onNext }) => {
   useEffect(() => {
     const fetchQuestions = async () => {
       try {
-        const result = await generateAptitudeQuestions({ numberOfQuestions: 20 });
+        const result = await generateAptitudeQuestions({ numberOfQuestions: 10 });
         const formattedQuestions = result.questions.map(q => ({
             ...q,
             options: shuffleArray(q.options)
