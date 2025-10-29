@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import WelcomeStep from "@/components/interview/welcome-step";
 import AptitudeStep from "@/components/interview/aptitude-step";
 import AptitudeResultsStep from "@/components/interview/aptitude-results-step";
@@ -77,6 +77,26 @@ export default function InterviewPage() {
     }
   }
 
+  useEffect(() => {
+    if (isProctoringActive) {
+      const preventDefault = (e: Event) => e.preventDefault();
+
+      const handleContextMenu = (e: MouseEvent) => preventDefault(e);
+      const handleCopy = (e: ClipboardEvent) => preventDefault(e);
+      const handlePaste = (e: ClipboardEvent) => preventDefault(e);
+
+      document.addEventListener('contextmenu', handleContextMenu);
+      document.addEventListener('copy', handleCopy);
+      document.addEventListener('paste', handlePaste);
+
+      return () => {
+        document.removeEventListener('contextmenu', handleContextMenu);
+        document.removeEventListener('copy', handleCopy);
+        document.removeEventListener('paste', handlePaste);
+      };
+    }
+  }, [isProctoringActive]);
+
 
   const renderStep = () => {
     if (isUserLoading) {
@@ -109,7 +129,7 @@ export default function InterviewPage() {
                     if ((interviewData.aptitudeScore || 0) >= 70) {
                         setCurrentStep("coding");
                     } else {
-                        setCurrentStep("failed");
+                        setCurrentStep("feedback");
                     }
                 }}
             />
@@ -128,6 +148,7 @@ export default function InterviewPage() {
           <HRStep
             onNext={(analysis) => {
               updateInterviewData({ hrAnalysis: analysis });
+              setIsProctoringActive(false);
               setCurrentStep("feedback");
             }}
           />
@@ -178,4 +199,3 @@ export default function InterviewPage() {
     </div>
   );
 }
-
