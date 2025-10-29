@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -59,6 +60,15 @@ const prompt = ai.definePrompt({
   Based on the entire context, what is the single most relevant and insightful next question you should ask the candidate?
   Do not greet them or add any conversational filler. Just provide the next question.
   `,
+  customize: (prompt) => {
+    prompt.options = {
+      ...prompt.options,
+      helpers: {
+        eq: (a: any, b: any) => a === b,
+      },
+    };
+    return prompt;
+  },
 });
 
 const simulateHrInterviewFlow = ai.defineFlow(
