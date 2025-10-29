@@ -1,13 +1,19 @@
+
 "use client";
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { Separator } from "@/components/ui/separator";
 import { Loader2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { runCode } from "@/ai/flows/run-code";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+} from "@/components/ui/resizable";
 
 interface CodingStepProps {
   onNext: (score: number) => void;
@@ -16,7 +22,8 @@ interface CodingStepProps {
 const problem = {
   title: "Find the First Non-Repeating Character",
   description: "Given a string, find the first non-repeating character in it and return its index. If it doesn't exist, return -1.",
-  example: `Input: "interviewace"\nOutput: 1 (character 'n' at index 1)`
+  example: `Input: "interviewace"\nOutput: 1 (character 'n' at index 1)`,
+  example2: `Input: "leetcode"\nOutput: 0 (character 'l' at index 0)`,
 };
 
 const languageTemplates = {
@@ -33,6 +40,8 @@ const CodingStep: React.FC<CodingStepProps> = ({ onNext }) => {
   const [code, setCode] = useState(languageTemplates["python"]);
   const [output, setOutput] = useState("");
   const [isRunning, setIsRunning] = useState(false);
+  const [activeTab, setActiveTab] = useState("code");
+
 
   const handleLanguageChange = (lang: Language) => {
       setLanguage(lang);
@@ -43,6 +52,7 @@ const CodingStep: React.FC<CodingStepProps> = ({ onNext }) => {
   const handleRunCode = async () => {
     setIsRunning(true);
     setOutput("Compiling...");
+    setActiveTab("output");
     try {
         const result = await runCode({ code, language });
         if(result.error) {
@@ -81,59 +91,74 @@ const CodingStep: React.FC<CodingStepProps> = ({ onNext }) => {
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-[80vh]">
-      <Card className="flex flex-col">
-        <CardHeader>
-          <CardTitle className="font-headline">{problem.title}</CardTitle>
-          <CardDescription>{problem.description}</CardDescription>
-        </CardHeader>
-        <CardContent className="flex-grow">
-          <p className="font-semibold mb-2">Example:</p>
-          <pre className="bg-muted p-4 rounded-md text-sm font-code">{problem.example}</pre>
-        </CardContent>
-      </Card>
-      <Card className="flex flex-col">
-        <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-                <CardTitle className="font-headline">Code Editor</CardTitle>
+    <ResizablePanelGroup direction="horizontal" className="h-[85vh] w-full rounded-lg border">
+        <ResizablePanel defaultSize={50}>
+            <Tabs defaultValue="description" className="h-full flex flex-col">
+                <TabsList className="m-2">
+                    <TabsTrigger value="description">Description</TabsTrigger>
+                </TabsList>
+                <TabsContent value="description" className="flex-grow p-4 pt-0 overflow-auto">
+                    <h2 className="text-2xl font-bold font-headline mb-4">{problem.title}</h2>
+                    <p className="text-muted-foreground mb-4">{problem.description}</p>
+                    
+                    <p className="font-semibold mb-2">Example 1:</p>
+                    <pre className="bg-muted p-4 rounded-md text-sm font-code mb-4">{problem.example}</pre>
+
+                    <p className="font-semibold mb-2">Example 2:</p>
+                    <pre className="bg-muted p-4 rounded-md text-sm font-code">{problem.example2}</pre>
+
+                </TabsContent>
+            </Tabs>
+        </ResizablePanel>
+        <ResizableHandle withHandle />
+        <ResizablePanel defaultSize={50}>
+            <div className="h-full flex flex-col">
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
+                    <div className="flex justify-between items-center p-2">
+                        <TabsList>
+                            <TabsTrigger value="code">Code</TabsTrigger>
+                            <TabsTrigger value="output">Output</TabsTrigger>
+                        </TabsList>
+                         <Select value={language} onValueChange={(val) => handleLanguageChange(val as Language)}>
+                            <SelectTrigger className="w-[180px]">
+                                <SelectValue placeholder="Select language" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="python">Python</SelectItem>
+                                <SelectItem value="java">Java</SelectItem>
+                                <SelectItem value="c">C</SelectItem>
+                                <SelectItem value="cpp">C++</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <TabsContent value="code" className="flex-grow m-0">
+                        <Textarea
+                            value={code}
+                            onChange={(e) => setCode(e.target.value)}
+                            placeholder="Write your code here..."
+                            className="h-full w-full font-code bg-card border-0 rounded-none focus-visible:ring-0"
+                        />
+                    </TabsContent>
+
+                    <TabsContent value="output" className="flex-grow m-0">
+                         <pre className="bg-card text-foreground p-4 rounded-md text-sm font-code h-full w-full overflow-auto">{output || "Run code to see output..."}</pre>
+                    </TabsContent>
+
+                    <div className="flex justify-end gap-2 p-2 border-t">
+                        <Button variant="outline" onClick={handleRunCode} disabled={isRunning}>
+                            {isRunning && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Run Code
+                        </Button>
+                        <Button onClick={handleSubmit} disabled={isRunning}>
+                            {isRunning && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Submit & Next
+                        </Button>
+                    </div>
+                </Tabs>
             </div>
-            <Select value={language} onValueChange={(val) => handleLanguageChange(val as Language)}>
-                <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="Select language" />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem value="python">Python</SelectItem>
-                    <SelectItem value="java">Java</SelectItem>
-                    <SelectItem value="c">C</SelectItem>
-                    <SelectItem value="cpp">C++</SelectItem>
-                </SelectContent>
-            </Select>
-        </CardHeader>
-        <CardContent className="flex-grow flex flex-col gap-4">
-          <Textarea
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-            placeholder="Write your code here..."
-            className="flex-grow font-code h-full bg-black text-white"
-          />
-          <Separator />
-          <div className="h-32">
-            <p className="font-semibold mb-2">Output</p>
-            <pre className="bg-black text-white p-2 rounded-md text-sm font-code h-full overflow-auto">{output}</pre>
-          </div>
-        </CardContent>
-        <CardFooter className="justify-end gap-2">
-          <Button variant="outline" onClick={handleRunCode} disabled={isRunning}>
-            {isRunning && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Run Code
-          </Button>
-          <Button onClick={handleSubmit} disabled={isRunning}>
-             {isRunning && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Submit & Next
-          </Button>
-        </CardFooter>
-      </Card>
-    </div>
+        </ResizablePanel>
+    </ResizablePanelGroup>
   );
 };
 
