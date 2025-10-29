@@ -85,7 +85,7 @@ export const Proctoring: React.FC<ProctoringProps> = ({ onVisibilityChange, onVi
 
     return (
         <>
-            <Card className='fixed top-20 right-4 w-40 shadow-lg rounded-lg overflow-hidden z-20'>
+            <Card className='fixed bottom-4 right-4 w-40 shadow-lg rounded-lg overflow-hidden z-20'>
                 <div className='bg-primary text-primary-foreground p-1 text-xs font-semibold flex items-center justify-center gap-2'>
                     <Video className='h-3 w-3' />
                     <span>Proctoring</span>
