@@ -15,6 +15,7 @@ import Link from "next/link";
 import { useUser } from "@/firebase";
 import { Proctoring } from "@/components/interview/proctoring";
 import { analyzeVideo, AnalyzeVideoOutput } from "@/ai/flows/analyze-video";
+import { useRouter } from "next/navigation";
 
 
 type InterviewStep = "welcome" | "aptitude" | "aptitude-results" | "coding" | "hr" | "feedback" | "failed";
@@ -43,6 +44,8 @@ export default function InterviewPage() {
   const [isProctoringActive, setIsProctoringActive] = useState(false);
   const [videoDataUri, setVideoDataUri] = useState<string | null>(null);
   const { user, isUserLoading } = useUser();
+  const router = useRouter();
+
 
   const updateInterviewData = (data: Partial<InterviewData>) => {
     setInterviewData((prev) => ({ ...prev, ...data }));
@@ -61,6 +64,10 @@ export default function InterviewPage() {
   
   const handleVideoData = (dataUri: string) => {
     setVideoDataUri(dataUri);
+  }
+  
+  const handleEndInterview = () => {
+    router.push('/dashboard');
   }
 
   useEffect(() => {
@@ -207,6 +214,7 @@ export default function InterviewPage() {
             <Proctoring 
                 onVisibilityChange={handleProctoringVisibilityChange}
                 onVideoData={handleVideoData}
+                onEndInterview={handleEndInterview}
             />
         )}
         <div className="w-full max-w-4xl mx-auto">

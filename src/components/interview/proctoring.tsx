@@ -5,6 +5,7 @@ import { useRef, useEffect, useState } from 'react';
 import { Card } from '../ui/card';
 import { Video } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
+import { Button } from '../ui/button';
 
 interface ProctoringProps {
     onVisibilityChange: (status: {
@@ -12,14 +13,17 @@ interface ProctoringProps {
         visibilityState: 'visible' | 'hidden';
     }) => void;
     onVideoData: (dataUri: string) => void;
+    onEndInterview: () => void;
 }
 
-export const Proctoring: React.FC<ProctoringProps> = ({ onVisibilityChange, onVideoData }) => {
+export const Proctoring: React.FC<ProctoringProps> = ({ onVisibilityChange, onVideoData, onEndInterview }) => {
     const videoRef = useRef<HTMLVideoElement>(null);
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const recordedChunksRef = useRef<Blob[]>([]);
     const [tabSwitches, setTabSwitches] = useState(0);
     const [showWarning, setShowWarning] = useState(false);
+    const [showPreview, setShowPreview] = useState(true);
+    const [showConfirmation, setShowConfirmation] = useState(false);
 
     // Handle tab/window visibility changes
     useEffect(() => {
@@ -58,6 +62,7 @@ export const Proctoring: React.FC<ProctoringProps> = ({ onVisibilityChange, onVi
                 };
 
                 mediaRecorderRef.current.onstop = () => {
+                    if (recordedChunksRef.current.length === 0) return;
                     const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
                     const reader = new FileReader();
                     reader.onload = () => {
@@ -67,8 +72,16 @@ export const Proctoring: React.FC<ProctoringProps> = ({ onVisibilityChange, onVi
                 };
 
                 mediaRecorderRef.current.start();
+
+                // Show preview for 5 seconds, then show confirmation
+                setTimeout(() => {
+                    setShowConfirmation(true);
+                }, 5000);
+
             } catch (error) {
                 console.error("Error setting up camera:", error);
+                alert("Camera access is required. Please enable it and refresh.");
+                onEndInterview();
             }
         };
 
@@ -81,17 +94,45 @@ export const Proctoring: React.FC<ProctoringProps> = ({ onVisibilityChange, onVi
             }
             stream?.getTracks().forEach(track => track.stop());
         };
-    }, [onVideoData]);
+    }, [onVideoData, onEndInterview]);
+
+    const handleConfirm = () => {
+        setShowPreview(false);
+        setShowConfirmation(false);
+    };
+
+    const handleDeny = () => {
+        setShowConfirmation(false);
+        onEndInterview();
+    };
 
     return (
         <>
-            <Card className='fixed bottom-4 right-4 w-40 shadow-lg rounded-lg overflow-hidden z-20'>
-                <div className='bg-primary text-primary-foreground p-1 text-xs font-semibold flex items-center justify-center gap-2'>
-                    <Video className='h-3 w-3' />
-                    <span>Proctoring</span>
-                </div>
-                <video ref={videoRef} autoPlay muted className='w-full h-auto' />
-            </Card>
+            {showPreview && (
+                 <Card className='fixed bottom-4 right-4 w-48 shadow-lg rounded-lg overflow-hidden z-20'>
+                    <div className='bg-primary text-primary-foreground p-1 text-xs font-semibold flex items-center justify-center gap-2'>
+                        <Video className='h-3 w-3' />
+                        <span>Proctoring Enabled</span>
+                    </div>
+                    <video ref={videoRef} autoPlay muted className='w-full h-auto' />
+                </Card>
+            )}
+
+            <AlertDialog open={showConfirmation}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Continue with Proctoring?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                           The video feed will now be hidden but will continue to record in the background for proctoring purposes. Do you agree to continue?
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <Button variant="destructive" onClick={handleDeny}>No, End Interview</Button>
+                        <AlertDialogAction onClick={handleConfirm}>Yes, Continue</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+            
             <AlertDialog open={showWarning} onOpenChange={setShowWarning}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
