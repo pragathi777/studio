@@ -158,12 +158,7 @@ export default function InterviewPage() {
           <CodingStep
             onNext={(score) => {
               updateInterviewData({ codingScore: score });
-               if (score >= 50) {
-                  setCurrentStep("hr");
-              } else {
-                  setIsProctoringActive(false);
-                  setCurrentStep("feedback");
-              }
+              setCurrentStep("hr");
             }}
           />
         );
