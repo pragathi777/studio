@@ -41,6 +41,7 @@ export default function InterviewPage() {
   const [currentStep, setCurrentStep] = useState<InterviewStep>("welcome");
   const [interviewData, setInterviewData] = useState<InterviewData>({ jobTitle: 'Software Engineer' });
   const [isProctoringActive, setIsProctoringActive] = useState(false);
+  const [videoDataUri, setVideoDataUri] = useState<string | null>(null);
   const { user, isUserLoading } = useUser();
 
   const updateInterviewData = (data: Partial<InterviewData>) => {
@@ -57,25 +58,35 @@ export default function InterviewPage() {
       } as ProctoringAnalysis
     }))
   }
-
-  const handleVideoData = async (videoDataUri: string) => {
-    // Analyze the complete video at the end of the interview
-    if (currentStep === 'feedback') {
-        try {
-            const analysis = await analyzeVideo({ videoDataUri });
-            setInterviewData(prev => ({
-                ...prev,
-                proctoringAnalysis: {
-                    ...prev.proctoringAnalysis,
-                    ...analysis,
-                    malpracticeDetected: (prev.proctoringAnalysis?.tabSwitches || 0) > 0 || analysis.malpracticeDetected,
-                }
-            }))
-        } catch (error) {
-            console.error("Failed to analyze video:", error);
-        }
-    }
+  
+  const handleVideoData = (dataUri: string) => {
+    setVideoDataUri(dataUri);
   }
+
+  useEffect(() => {
+    const analyze = async () => {
+      if (currentStep === 'feedback' && videoDataUri) {
+          try {
+              const analysis = await analyzeVideo({ videoDataUri });
+              setInterviewData(prev => ({
+                  ...prev,
+                  proctoringAnalysis: {
+                      ...prev.proctoringAnalysis,
+                      ...analysis,
+                      malpracticeDetected: (prev.proctoringAnalysis?.tabSwitches || 0) > 0 || analysis.malpracticeDetected,
+                  }
+              }))
+          } catch (error) {
+              console.error("Failed to analyze video:", error);
+          } finally {
+            // To prevent re-analyzing
+            setVideoDataUri(null);
+          }
+      }
+    }
+    analyze();
+  }, [currentStep, videoDataUri]);
+  
 
   useEffect(() => {
     if (isProctoringActive) {
@@ -129,6 +140,7 @@ export default function InterviewPage() {
                     if ((interviewData.aptitudeScore || 0) >= 70) {
                         setCurrentStep("coding");
                     } else {
+                        setIsProctoringActive(false);
                         setCurrentStep("feedback");
                     }
                 }}
@@ -139,7 +151,12 @@ export default function InterviewPage() {
           <CodingStep
             onNext={(score) => {
               updateInterviewData({ codingScore: score });
-              setCurrentStep("hr");
+               if (score >= 50) {
+                  setCurrentStep("hr");
+              } else {
+                  setIsProctoringActive(false);
+                  setCurrentStep("feedback");
+              }
             }}
           />
         );
@@ -186,7 +203,7 @@ export default function InterviewPage() {
         </div>
       </header>
       <main className="flex-grow flex items-center justify-center p-6">
-        {isProctoringActive && currentStep !== 'feedback' && (
+        {isProctoringActive && (
             <Proctoring 
                 onVisibilityChange={handleProctoringVisibilityChange}
                 onVideoData={handleVideoData}

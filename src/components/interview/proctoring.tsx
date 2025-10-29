@@ -76,17 +76,19 @@ export const Proctoring: React.FC<ProctoringProps> = ({ onVisibilityChange, onVi
 
         // Cleanup on unmount
         return () => {
-            mediaRecorderRef.current?.stop();
+            if (mediaRecorderRef.current?.state === 'recording') {
+                mediaRecorderRef.current?.stop();
+            }
             stream?.getTracks().forEach(track => track.stop());
         };
     }, [onVideoData]);
 
     return (
         <>
-            <Card className='fixed bottom-4 right-4 w-48 shadow-lg rounded-lg overflow-hidden z-20'>
-                <div className='bg-primary text-primary-foreground p-2 text-xs font-semibold flex items-center gap-2'>
-                    <Video className='h-4 w-4' />
-                    <span>Proctoring Active</span>
+            <Card className='fixed bottom-4 right-4 w-40 shadow-lg rounded-lg overflow-hidden z-20'>
+                <div className='bg-primary text-primary-foreground p-1 text-xs font-semibold flex items-center justify-center gap-2'>
+                    <Video className='h-3 w-3' />
+                    <span>Proctoring</span>
                 </div>
                 <video ref={videoRef} autoPlay muted className='w-full h-auto' />
             </Card>
