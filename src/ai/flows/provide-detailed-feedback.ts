@@ -94,6 +94,15 @@ const prompt = ai.definePrompt({
 
   Your tone must be that of a supportive, expert career coach. The goal is to empower the candidate with accurate insights to succeed in their next real interview.
   `,
+  customize: (prompt) => {
+    prompt.options = {
+      ...prompt.options,
+      helpers: {
+        eq: (a: any, b: any) => a === b,
+      },
+    };
+    return prompt;
+  },
 });
 
 const provideDetailedFeedbackFlow = ai.defineFlow(
