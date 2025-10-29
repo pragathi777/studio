@@ -1,16 +1,21 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Check, ShieldAlert } from "lucide-react";
+import { Check, ShieldAlert, Camera } from "lucide-react";
 
 interface WelcomeStepProps {
   onNext: () => void;
 }
 
 const WelcomeStep: React.FC<WelcomeStepProps> = ({ onNext }) => {
-  const handleStart = () => {
-    // Here you would typically request permissions for mic, camera, screen
-    // For now, we just move to the next step
-    onNext();
+  const handleStart = async () => {
+    try {
+        // Request camera permissions
+        await navigator.mediaDevices.getUserMedia({ video: true });
+        onNext();
+    } catch (error) {
+        console.error("Camera access denied:", error);
+        alert("Camera access is required for the proctored interview. Please enable it in your browser settings and refresh the page.");
+    }
   };
 
   return (
@@ -40,19 +45,19 @@ const WelcomeStep: React.FC<WelcomeStepProps> = ({ onNext }) => {
             </ul>
         </div>
         <div>
-            <h3 className="font-semibold mb-4 text-lg">Important Instructions</h3>
+            <h3 className="font-semibold mb-4 text-lg">Proctoring & Instructions</h3>
             <ul className="space-y-3 text-muted-foreground">
+                <li className="flex items-start gap-3">
+                    <Camera className="h-5 w-5 text-accent mt-1 flex-shrink-0" />
+                    <span>This session will be proctored using your camera. Please grant access when prompted.</span>
+                </li>
                 <li className="flex items-start gap-3">
                     <ShieldAlert className="h-5 w-5 text-accent mt-1 flex-shrink-0" />
                     <span>Ensure you are in a quiet environment with a stable internet connection.</span>
                 </li>
                 <li className="flex items-start gap-3">
                     <ShieldAlert className="h-5 w-5 text-accent mt-1 flex-shrink-0" />
-                    <span>This session will be recorded for analysis. Your camera, microphone, and screen will be monitored.</span>
-                </li>
-                <li className="flex items-start gap-3">
-                    <ShieldAlert className="h-5 w-5 text-accent mt-1 flex-shrink-0" />
-                    <span>Switching tabs during the test is prohibited and will be flagged.</span>
+                    <span>Switching tabs during the test is prohibited and will be flagged as malpractice.</span>
                 </li>
             </ul>
         </div>

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -5,13 +6,13 @@ import { provideDetailedFeedback, ProvideDetailedFeedbackOutput } from "@/ai/flo
 import type { InterviewData } from "@/app/interview/page";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Download } from "lucide-react";
+import { Loader2, Download, AlertTriangle } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
 import { useFirestore } from "@/firebase/provider";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, serverTimestamp } from "firebase/firestore";
 import { addDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 
 
@@ -32,6 +33,7 @@ const FeedbackStep: React.FC<FeedbackStepProps> = ({ interviewData, userId }) =>
             aptitudeScore: interviewData.aptitudeScore,
             codingScore: interviewData.codingScore,
             hrConversation: interviewData.hrAnalysis?.conversation,
+            proctoringAnalysis: interviewData.proctoringAnalysis,
         });
         setFeedbackResult(result);
 
@@ -47,7 +49,7 @@ const FeedbackStep: React.FC<FeedbackStepProps> = ({ interviewData, userId }) =>
             aptitudeScore: interviewData.aptitudeScore,
             codingScore: interviewData.codingScore,
             feedbackReport: result.feedbackReport,
-            // You can add more data from hrAnalysis if needed
+            proctoringAnalysis: interviewData.proctoringAnalysis,
           };
           
           addDocumentNonBlocking(interviewSessionsRef, sessionData);
@@ -108,11 +110,15 @@ const FeedbackStep: React.FC<FeedbackStepProps> = ({ interviewData, userId }) =>
                     <Progress value={interviewData.codingScore ?? 0} className="mt-1" />
                 </div>
                  <div>
-                    <Label>HR Round Analysis</Label>
+                    <Label>Proctoring Analysis</Label>
                     <div className="flex gap-2 mt-2">
-                        <Badge variant="secondary">Confidence: High</Badge>
-                        <Badge variant="secondary">Clarity: Good</Badge>
-                        <Badge variant={"default"}>Proctoring: No issues</Badge>
+                        {interviewData.proctoringAnalysis?.malpracticeDetected ? (
+                           <Badge variant="destructive"><AlertTriangle className="mr-1 h-3 w-3" /> Malpractice Flagged</Badge>
+                        ) : (
+                            <Badge variant="secondary">No Issues Detected</Badge>
+                        )}
+                        <Badge variant="secondary">Confidence: {((interviewData.proctoringAnalysis?.confidenceLevel ?? 0) * 100).toFixed(0)}%</Badge>
+                         <Badge variant="secondary">Engagement: {((interviewData.proctoringAnalysis?.engagementLevel ?? 0) * 100).toFixed(0)}%</Badge>
                     </div>
                 </div>
             </CardContent>

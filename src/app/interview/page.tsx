@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -12,6 +13,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useUser } from "@/firebase";
+import { Proctoring } from "@/components/interview/proctoring";
+import { analyzeVideo, AnalyzeVideoOutput } from "@/ai/flows/analyze-video";
+
 
 type InterviewStep = "welcome" | "aptitude" | "aptitude-results" | "coding" | "hr" | "feedback" | "failed";
 
@@ -19,11 +23,16 @@ export type HRAnalysis = {
   conversation: { speaker: 'user' | 'ai'; text: string }[];
 }
 
+export type ProctoringAnalysis = AnalyzeVideoOutput & {
+  tabSwitches: number;
+}
+
 export type InterviewData = {
   jobTitle: string;
   aptitudeScore?: number;
   codingScore?: number;
   hrAnalysis?: HRAnalysis;
+  proctoringAnalysis?: ProctoringAnalysis,
   finalFeedback?: string;
   overallScore?: number;
 };
@@ -31,11 +40,43 @@ export type InterviewData = {
 export default function InterviewPage() {
   const [currentStep, setCurrentStep] = useState<InterviewStep>("welcome");
   const [interviewData, setInterviewData] = useState<InterviewData>({ jobTitle: 'Software Engineer' });
+  const [isProctoringActive, setIsProctoringActive] = useState(false);
   const { user, isUserLoading } = useUser();
 
   const updateInterviewData = (data: Partial<InterviewData>) => {
     setInterviewData((prev) => ({ ...prev, ...data }));
   };
+
+  const handleProctoringVisibilityChange = (status: { tabSwitches: number }) => {
+    setInterviewData(prev => ({
+      ...prev,
+      proctoringAnalysis: {
+        ...prev.proctoringAnalysis,
+        tabSwitches: status.tabSwitches,
+        malpracticeDetected: (prev.proctoringAnalysis?.malpracticeDetected || false) || status.tabSwitches > 0,
+      } as ProctoringAnalysis
+    }))
+  }
+
+  const handleVideoData = async (videoDataUri: string) => {
+    // Analyze the complete video at the end of the interview
+    if (currentStep === 'feedback') {
+        try {
+            const analysis = await analyzeVideo({ videoDataUri });
+            setInterviewData(prev => ({
+                ...prev,
+                proctoringAnalysis: {
+                    ...prev.proctoringAnalysis,
+                    ...analysis,
+                    malpracticeDetected: (prev.proctoringAnalysis?.tabSwitches || 0) > 0 || analysis.malpracticeDetected,
+                }
+            }))
+        } catch (error) {
+            console.error("Failed to analyze video:", error);
+        }
+    }
+  }
+
 
   const renderStep = () => {
     if (isUserLoading) {
@@ -47,7 +88,10 @@ export default function InterviewPage() {
     
     switch (currentStep) {
       case "welcome":
-        return <WelcomeStep onNext={() => setCurrentStep("aptitude")} />;
+        return <WelcomeStep onNext={() => {
+          setIsProctoringActive(true);
+          setCurrentStep("aptitude");
+        }} />;
       case "aptitude":
         return (
           <AptitudeStep
@@ -75,12 +119,7 @@ export default function InterviewPage() {
           <CodingStep
             onNext={(score) => {
               updateInterviewData({ codingScore: score });
-              if (score >= 60) { // Cutoff score
-                setCurrentStep("hr");
-              } else {
-                // Instead of 'failed', go to 'feedback'
-                setCurrentStep("feedback");
-              }
+              setCurrentStep("hr");
             }}
           />
         );
@@ -126,6 +165,12 @@ export default function InterviewPage() {
         </div>
       </header>
       <main className="flex-grow flex items-center justify-center p-6">
+        {isProctoringActive && currentStep !== 'feedback' && (
+            <Proctoring 
+                onVisibilityChange={handleProctoringVisibilityChange}
+                onVideoData={handleVideoData}
+            />
+        )}
         <div className="w-full max-w-4xl mx-auto">
           {renderStep()}
         </div>
@@ -133,3 +178,4 @@ export default function InterviewPage() {
     </div>
   );
 }
+
