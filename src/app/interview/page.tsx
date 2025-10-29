@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useUser } from "@/firebase";
 import { Proctoring } from "@/components/interview/proctoring";
-import { analyzeVideo, AnalyzeVideoOutput } from "@/ai/flows/analyze-video";
+import { analyzeFacialExpressions, AnalyzeFacialExpressionsOutput } from "@/ai/flows/analyze-facial-expressions";
 import { useRouter } from "next/navigation";
 
 
@@ -24,8 +24,9 @@ export type HRAnalysis = {
   conversation: { speaker: 'user' | 'ai'; text: string }[];
 }
 
-export type ProctoringAnalysis = AnalyzeVideoOutput & {
+export type ProctoringAnalysis = AnalyzeFacialExpressionsOutput & {
   tabSwitches: number;
+  proctoringSummary: string;
 }
 
 export type InterviewData = {
@@ -74,7 +75,7 @@ export default function InterviewPage() {
     const analyze = async () => {
       if (currentStep === 'feedback' && videoDataUri) {
           try {
-              const analysis = await analyzeVideo({ videoDataUri });
+              const analysis = await analyzeFacialExpressions({ videoDataUri });
               setInterviewData(prev => ({
                   ...prev,
                   proctoringAnalysis: {
@@ -201,7 +202,9 @@ export default function InterviewPage() {
       <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-card px-6">
         <Logo />
         <div className="flex items-center gap-4">
-          <span className="text-sm text-muted-foreground capitalize">{currentStep.replace('-', ' ')} Round</span>
+          {currentStep !== 'welcome' && (
+            <span className="text-sm text-muted-foreground capitalize">{currentStep.replace('-', ' ')} Round</span>
+          )}
         </div>
       </header>
       <main className="flex-grow flex items-center justify-center p-6">
