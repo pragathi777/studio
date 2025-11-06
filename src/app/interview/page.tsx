@@ -42,7 +42,16 @@ export type InterviewData = {
 
 export default function InterviewPage() {
   const [currentStep, setCurrentStep] = useState<InterviewStep>("welcome");
-  const [interviewData, setInterviewData] = useState<InterviewData>({ jobTitle: 'Software Engineer' });
+  const [interviewData, setInterviewData] = useState<InterviewData>({ 
+    jobTitle: 'Software Engineer',
+    proctoringAnalysis: {
+      confidenceLevel: 0,
+      engagementLevel: 0,
+      malpracticeDetected: false,
+      tabSwitches: 0,
+      proctoringSummary: 'No issues detected.'
+    }
+  });
   const [isProctoringActive, setIsProctoringActive] = useState(false);
   const [videoDataUri, setVideoDataUri] = useState<string | null>(null);
   const { user, isUserLoading } = useUser();
