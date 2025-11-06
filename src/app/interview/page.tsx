@@ -16,6 +16,7 @@ import { useUser } from "@/firebase";
 import { Proctoring } from "@/components/interview/proctoring";
 import { analyzeFacialExpressions, AnalyzeFacialExpressionsOutput } from "@/ai/flows/analyze-facial-expressions";
 import { useRouter } from "next/navigation";
+import { cn } from "@/lib/utils";
 
 
 type InterviewStep = "welcome" | "aptitude" | "aptitude-results" | "coding" | "hr" | "feedback" | "failed";
@@ -196,6 +197,8 @@ export default function InterviewPage() {
         return <WelcomeStep onNext={() => setCurrentStep("aptitude")} />;
     }
   };
+  
+  const isCodingStep = currentStep === "coding";
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -207,7 +210,10 @@ export default function InterviewPage() {
           )}
         </div>
       </header>
-      <main className="flex-grow flex items-center justify-center p-6">
+      <main className={cn(
+          "flex-grow flex items-center justify-center",
+          !isCodingStep && "p-6"
+      )}>
         {isProctoringActive && (
             <Proctoring 
                 onVisibilityChange={handleProctoringVisibilityChange}
@@ -215,7 +221,10 @@ export default function InterviewPage() {
                 onEndInterview={handleEndInterview}
             />
         )}
-        <div className="w-full max-w-4xl mx-auto">
+        <div className={cn(
+            "w-full mx-auto",
+            isCodingStep ? "h-full" : "max-w-4xl"
+        )}>
           {renderStep()}
         </div>
       </main>

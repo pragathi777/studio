@@ -3,7 +3,6 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -27,10 +26,108 @@ const problem = {
 };
 
 const languageTemplates = {
-    "python": "def solve(s):\n  # Your code here\n  return -1\n\nprint(solve(\"interviewace\"))",
-    "java": "class Solution {\n    public int firstUniqChar(String s) {\n        // Your code here\n        return -1;\n    }\n\n    public static void main(String[] args) {\n        Solution sol = new Solution();\n        System.out.println(sol.firstUniqChar(\"interviewace\"));\n    }\n}",
-    "c": "#include <stdio.h>\n#include <string.h>\n\nint firstUniqChar(char * s){\n    // Your code here\n    return -1;\n}\n\nint main() {\n    printf(\"%d\\n\", firstUniqChar(\"interviewace\"));\n    return 0;\n}",
-    "cpp": "#include <iostream>\n#include <string>\n\nint firstUniqChar(std::string s) {\n    // Your code here\n    return -1;\n}\n\nint main() {\n    std::cout << firstUniqChar(\"interviewace\") << std::endl;\n    return 0;\n}"
+    "python": `def solve(s):
+  # Your code here
+  # Example: Find first non-repeating character
+  char_counts = {}
+  for char in s:
+    char_counts[char] = char_counts.get(char, 0) + 1
+  
+  for i, char in enumerate(s):
+    if char_counts[char] == 1:
+      return i
+      
+  return -1
+
+# Test with an example
+print(solve("interviewace"))`,
+    "javascript": `function solve(s) {
+  // Your code here
+  // Example: Find first non-repeating character
+  const charCounts = {};
+  for (const char of s) {
+    charCounts[char] = (charCounts[char] || 0) + 1;
+  }
+  
+  for (let i = 0; i < s.length; i++) {
+    if (charCounts[s[i]] === 1) {
+      return i;
+    }
+  }
+  
+  return -1;
+}
+
+// Test with an example
+console.log(solve("interviewace"));`,
+    "java": `import java.util.HashMap;
+import java.util.Map;
+
+class Solution {
+    public int firstUniqChar(String s) {
+        // Your code here
+        Map<Character, Integer> count = new HashMap<>();
+        int n = s.length();
+        for (int i = 0; i < n; i++) {
+            char c = s.charAt(i);
+            count.put(c, count.getOrDefault(c, 0) + 1);
+        }
+        
+        for (int i = 0; i < n; i++) {
+            if (count.get(s.charAt(i)) == 1) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    public static void main(String[] args) {
+        Solution sol = new Solution();
+        System.out.println(sol.firstUniqChar("interviewace"));
+    }
+}`,
+    "c": `#include <stdio.h>
+#include <string.h>
+
+int firstUniqChar(char * s){
+    int count[26] = {0};
+    int len = strlen(s);
+    for (int i = 0; i < len; i++) {
+        count[s[i] - 'a']++;
+    }
+    for (int i = 0; i < len; i++) {
+        if (count[s[i] - 'a'] == 1) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+int main() {
+    printf("%d\\n", firstUniqChar("interviewace"));
+    return 0;
+}`,
+    "cpp": `#include <iostream>
+#include <string>
+#include <unordered_map>
+
+int firstUniqChar(std::string s) {
+    std::unordered_map<char, int> count;
+    for (char c : s) {
+        count[c]++;
+    }
+    for (int i = 0; i < s.length(); i++) {
+        if (count[s[i]] == 1) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+int main() {
+    std::cout << firstUniqChar("interviewace") << std::endl;
+    return 0;
+}`
 }
 
 type Language = keyof typeof languageTemplates;
@@ -91,43 +188,46 @@ const CodingStep: React.FC<CodingStepProps> = ({ onNext }) => {
   };
 
   return (
-    <ResizablePanelGroup direction="horizontal" className="h-[85vh] w-full rounded-lg border">
-        <ResizablePanel defaultSize={50}>
+    <ResizablePanelGroup direction="horizontal" className="h-[calc(100vh-4rem)] w-full bg-[#0d1117] text-white">
+        <ResizablePanel defaultSize={40}>
             <Tabs defaultValue="description" className="h-full flex flex-col">
-                <TabsList className="m-2">
-                    <TabsTrigger value="description">Description</TabsTrigger>
-                </TabsList>
-                <TabsContent value="description" className="flex-grow p-4 pt-0 overflow-auto">
-                    <h2 className="text-2xl font-bold font-headline mb-4">{problem.title}</h2>
-                    <p className="text-muted-foreground mb-4">{problem.description}</p>
+                <div className="p-2 border-b border-[#30363d]">
+                    <TabsList className="bg-[#161b22]">
+                        <TabsTrigger value="description" className="data-[state=active]:bg-[#21262d] data-[state=active]:text-white">Description</TabsTrigger>
+                    </TabsList>
+                </div>
+                <TabsContent value="description" className="flex-grow p-4 pt-2 overflow-auto">
+                    <h2 className="text-2xl font-bold font-headline mb-4 text-gray-200">{problem.title}</h2>
+                    <p className="text-gray-400 mb-4">{problem.description}</p>
                     
-                    <p className="font-semibold mb-2">Example 1:</p>
-                    <pre className="bg-muted p-4 rounded-md text-sm font-code mb-4">{problem.example}</pre>
+                    <p className="font-semibold mb-2 text-gray-300">Example 1:</p>
+                    <pre className="bg-[#161b22] p-4 rounded-md text-sm font-code text-gray-300 mb-4">{problem.example}</pre>
 
-                    <p className="font-semibold mb-2">Example 2:</p>
-                    <pre className="bg-muted p-4 rounded-md text-sm font-code">{problem.example2}</pre>
+                    <p className="font-semibold mb-2 text-gray-300">Example 2:</p>
+                    <pre className="bg-[#161b22] p-4 rounded-md text-sm font-code text-gray-300">{problem.example2}</pre>
 
                 </TabsContent>
             </Tabs>
         </ResizablePanel>
-        <ResizableHandle withHandle />
-        <ResizablePanel defaultSize={50}>
+        <ResizableHandle withHandle className="bg-[#30363d]" />
+        <ResizablePanel defaultSize={60}>
             <div className="h-full flex flex-col">
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
-                    <div className="flex justify-between items-center p-2">
-                        <TabsList>
-                            <TabsTrigger value="code">Code</TabsTrigger>
-                            <TabsTrigger value="output">Output</TabsTrigger>
+                    <div className="flex justify-between items-center p-2 border-b border-[#30363d]">
+                        <TabsList className="bg-[#161b22]">
+                            <TabsTrigger value="code" className="data-[state=active]:bg-[#21262d] data-[state=active]:text-white">Code</TabsTrigger>
+                            <TabsTrigger value="output" className="data-[state=active]:bg-[#21262d] data-[state=active]:text-white">Output</TabsTrigger>
                         </TabsList>
                          <Select value={language} onValueChange={(val) => handleLanguageChange(val as Language)}>
-                            <SelectTrigger className="w-[180px]">
+                            <SelectTrigger className="w-[180px] bg-[#0d1117] border-[#30363d] text-white">
                                 <SelectValue placeholder="Select language" />
                             </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="python">Python</SelectItem>
-                                <SelectItem value="java">Java</SelectItem>
-                                <SelectItem value="c">C</SelectItem>
-                                <SelectItem value="cpp">C++</SelectItem>
+                            <SelectContent className="bg-[#161b22] border-[#30363d] text-white">
+                                <SelectItem value="python" className="focus:bg-[#21262d]">Python</SelectItem>
+                                <SelectItem value="javascript" className="focus:bg-[#21262d]">JavaScript</SelectItem>
+                                <SelectItem value="java" className="focus:bg-[#21262d]">Java</SelectItem>
+                                <SelectItem value="c" className="focus:bg-[#21262d]">C</SelectItem>
+                                <SelectItem value="cpp" className="focus:bg-[#21262d]">C++</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
@@ -137,20 +237,20 @@ const CodingStep: React.FC<CodingStepProps> = ({ onNext }) => {
                             value={code}
                             onChange={(e) => setCode(e.target.value)}
                             placeholder="Write your code here..."
-                            className="h-full w-full font-code bg-card border-0 rounded-none focus-visible:ring-0"
+                            className="h-full w-full font-code bg-[#0d1117] border-0 rounded-none focus-visible:ring-0 text-gray-300"
                         />
                     </TabsContent>
 
                     <TabsContent value="output" className="flex-grow m-0">
-                         <pre className="bg-card text-foreground p-4 rounded-md text-sm font-code h-full w-full overflow-auto">{output || "Run code to see output..."}</pre>
+                         <pre className="bg-[#0d1117] text-gray-300 p-4 rounded-md text-sm font-code h-full w-full overflow-auto">{output || "Run code to see output..."}</pre>
                     </TabsContent>
 
-                    <div className="flex justify-end gap-2 p-2 border-t">
-                        <Button variant="outline" onClick={handleRunCode} disabled={isRunning}>
+                    <div className="flex justify-end gap-2 p-2 border-t border-[#30363d]">
+                        <Button variant="secondary" onClick={handleRunCode} disabled={isRunning} className="bg-[#21262d] hover:bg-[#30363d] text-white">
                             {isRunning && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             Run Code
                         </Button>
-                        <Button onClick={handleSubmit} disabled={isRunning}>
+                        <Button onClick={handleSubmit} disabled={isRunning} className="bg-primary hover:bg-primary/90 text-primary-foreground">
                             {isRunning && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             Submit & Next
                         </Button>
