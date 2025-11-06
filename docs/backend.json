@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "User": {
@@ -25,7 +26,8 @@
         }
       },
       "required": [
-        "id"
+        "id",
+        "email"
       ]
     },
     "InterviewSession": {
@@ -78,8 +80,7 @@
   },
   "auth": {
     "providers": [
-      "password",
-      "anonymous"
+      "password"
     ]
   },
   "firestore": {

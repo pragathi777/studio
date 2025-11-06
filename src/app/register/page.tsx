@@ -11,15 +11,14 @@ import { Logo } from "@/components/logo";
 import { useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
 import { useAuth, useUser } from "@/firebase";
-import { initiateEmailSignIn } from "@/firebase/non-blocking-login";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { initiateEmailSignUp } from "@/firebase/non-blocking-login";
 import { useToast } from "@/hooks/use-toast";
 
-
-export default function LoginPage() {
+export default function RegisterPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const auth = useAuth();
   const { user, isUserLoading } = useUser();
@@ -31,23 +30,30 @@ export default function LoginPage() {
     }
   }, [user, router]);
 
-
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (password !== confirmPassword) {
+      toast({
+        variant: "destructive",
+        title: "Registration Failed",
+        description: "Passwords do not match.",
+      });
+      return;
+    }
     setIsLoading(true);
     try {
-        await initiateEmailSignIn(auth, email, password);
-        // The onAuthStateChanged listener in the provider will handle the redirect
+      await initiateEmailSignUp(auth, email, password);
+      // The onAuthStateChanged listener in the provider will handle the redirect
     } catch (error: any) {
-        toast({
-            variant: "destructive",
-            title: "Login Failed",
-            description: error.message || "An unexpected error occurred.",
-        });
-        setIsLoading(false);
+      toast({
+        variant: "destructive",
+        title: "Registration Failed",
+        description: error.message || "An unexpected error occurred.",
+      });
+      setIsLoading(false);
     }
   };
-  
+
   if (isUserLoading || user) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
@@ -58,16 +64,26 @@ export default function LoginPage() {
 
   return (
     <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2 xl:min-h-screen">
+      <div className="hidden bg-muted lg:block">
+        <Image
+          src="https://picsum.photos/seed/register-hero/1200/900"
+          alt="A developer coding on a laptop."
+          data-ai-hint="developer coding"
+          width="1200"
+          height="900"
+          className="h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
+        />
+      </div>
       <div className="flex items-center justify-center py-12">
         <div className="mx-auto grid w-[350px] gap-6">
           <div className="grid gap-2 text-center">
             <Logo className="justify-center" />
-            <h1 className="text-3xl font-bold font-headline mt-4">Welcome Back</h1>
+            <h1 className="text-3xl font-bold font-headline mt-4">Create an Account</h1>
             <p className="text-balance text-muted-foreground">
-              Enter your email below to login to your account.
+              Enter your information to create an account.
             </p>
           </div>
-          <form onSubmit={handleLogin} className="grid gap-4">
+          <form onSubmit={handleRegister} className="grid gap-4">
             <div className="grid gap-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -80,15 +96,7 @@ export default function LoginPage() {
               />
             </div>
             <div className="grid gap-2">
-              <div className="flex items-center">
-                <Label htmlFor="password">Password</Label>
-                <Link
-                  href="#"
-                  className="ml-auto inline-block text-sm underline"
-                >
-                  Forgot your password?
-                </Link>
-              </div>
+              <Label htmlFor="password">Password</Label>
               <Input 
                 id="password" 
                 type="password" 
@@ -97,30 +105,30 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
               />
             </div>
+            <div className="grid gap-2">
+              <Label htmlFor="confirm-password">Confirm Password</Label>
+              <Input 
+                id="confirm-password" 
+                type="password" 
+                required 
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+              />
+            </div>
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}
-              Login
+              Create Account
             </Button>
           </form>
           <div className="mt-4 text-center text-sm">
-            Don&apos;t have an account?{" "}
-            <Link href="/register" className="underline">
-              Sign up
+            Already have an account?{" "}
+            <Link href="/" className="underline">
+              Sign in
             </Link>
           </div>
         </div>
-      </div>
-      <div className="hidden bg-muted lg:block">
-        <Image
-          src="https://picsum.photos/seed/login-hero/1200/900"
-          alt="A modern office setting with people collaborating."
-          data-ai-hint="modern office"
-          width="1200"
-          height="900"
-          className="h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
-        />
       </div>
     </div>
   );
