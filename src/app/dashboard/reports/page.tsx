@@ -27,7 +27,7 @@ export default function ReportsPage() {
   const firestore = useFirestore();
 
   const interviewsQuery = useMemoFirebase(() => {
-    if (!user) return null;
+    if (!user || !firestore) return null;
     return query(
       collection(firestore, "users", user.uid, "interviewSessions"),
       orderBy("startTime", "desc")

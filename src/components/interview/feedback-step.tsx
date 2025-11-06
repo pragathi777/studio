@@ -66,7 +66,9 @@ const FeedbackStep: React.FC<FeedbackStepProps> = ({ interviewData, userId }) =>
         setIsLoading(false);
       }
     };
-    getFeedbackAndSave();
+    if (userId && firestore) {
+      getFeedbackAndSave();
+    }
   }, [interviewData, userId, firestore]);
 
   const renderMarkdown = (markdown: string) => {

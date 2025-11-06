@@ -29,7 +29,7 @@ export default function DashboardPage() {
   const firestore = useFirestore();
 
   const interviewsQuery = useMemoFirebase(() => {
-    if (!user) return null;
+    if (!user || !firestore) return null;
     return query(
       collection(firestore, "users", user.uid, "interviewSessions"),
       orderBy("startTime", "desc"),
@@ -107,7 +107,7 @@ export default function DashboardPage() {
           <div className="grid gap-2">
             <CardTitle className="font-headline">Past Interviews</CardTitle>
             <CardDescription>
-              Review your performance from previous sessions.
+              Review your performance from recent sessions.
             </CardDescription>
           </div>
           <Button asChild size="sm" className="ml-auto gap-1">
