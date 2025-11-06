@@ -25,9 +25,6 @@ export function Logo({ className }: { className?: string }) {
           strokeLinejoin="round"
         />
       </svg>
-      <h1 className="text-xl font-bold font-headline text-foreground">
-        InterviewAce
-      </h1>
     </div>
   );
 }

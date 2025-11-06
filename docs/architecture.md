@@ -1,6 +1,6 @@
-# InterviewAce Architectural Block Diagram
+# Architectural Block Diagram
 
-This document outlines the high-level architecture of the InterviewAce application. The system is composed of three primary layers: Frontend (Client-Side), Application Server (Serverless Functions), and Backend Services (Google Cloud & Firebase).
+This document outlines the high-level architecture of the application. The system is composed of three primary layers: Frontend (Client-Side), Application Server (Serverless Functions), and Backend Services (Google Cloud & Firebase).
 
 ```mermaid
 graph TD

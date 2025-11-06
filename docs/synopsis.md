@@ -1,9 +1,9 @@
 
-# Synopsis: InterviewAce - AI-Powered Mock Interview Platform
+# Synopsis: AI-Powered Mock Interview Platform
 
 ## 1. Name / Title of the Project
 
-**InterviewAce: An AI-Powered Mock Interview Platform**
+**AI-Powered Mock Interview Platform**
 
 ## 2. Statement about the Problem
 
@@ -29,7 +29,7 @@ The convergence of advanced AI, cloud computing, and the global shift towards re
 
 ### Objectives
 
-The primary objectives of the InterviewAce project are:
+The primary objectives of this project are:
 
 1.  **To Develop a Realistic Mock Interview Simulator:** Create a web-based platform that simulates a standard multi-round interview process, including an aptitude test, a live coding challenge, and a behavioral (HR) interview.
 2.  **To Integrate Conversational AI:** Implement an AI-powered interviewer for the HR round that can ask relevant, adaptive questions based on the candidate's profile and previous responses.
@@ -39,7 +39,7 @@ The primary objectives of the InterviewAce project are:
 
 ### Scope
 
-The scope of this project is to build a fully functional prototype of the InterviewAce platform.
+The scope of this project is to build a fully functional prototype of the AI-powered mock interview platform.
 
 **In Scope:**
 *   A Next.js/React single-page application.
@@ -68,7 +68,7 @@ The development of AI-driven educational and recruitment tools is a rapidly grow
 *   **AI in Affective Computing:** The field of affective computing focuses on systems that can recognize, interpret, and simulate human emotions. Research by pioneers like Rosalind Picard has shown that analyzing facial expressions, tone of voice, and body language can provide deep insights into a person's cognitive and emotional state. We apply these principles in our proctoring and feedback system to assess non-verbal cues like confidence and engagement.
 *   **E-Proctoring Systems:** With the rise of online education and remote testing, AI-powered proctoring has become crucial. Systems like ProctorU and Respondus use webcam and microphone feeds to monitor for signs of cheating, such as the presence of another person, looking away from the screen, or using unauthorized devices. Our platform integrates a lightweight version of these principles to ensure the integrity of the mock interview.
 
-This project synthesizes these different areas into a single, cohesive platform, offering a more holistic interview preparation experience than any single tool provides alone.
+This project synthesizes these different areas into a single, cohesive platform, offering a more holistic interview preparation experience than any single tool provides.
 
 ## 6. Methodology
 

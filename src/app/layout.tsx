@@ -4,7 +4,7 @@ import { Toaster } from "@/components/ui/toaster"
 import { FirebaseClientProvider } from '@/firebase';
 
 export const metadata: Metadata = {
-  title: 'InterviewAce: AI-Powered Mock Interviews',
+  title: 'AI-Powered Mock Interviews',
   description: 'An advanced platform for AI-powered mock interviews to help you ace your next job.',
 };
 
