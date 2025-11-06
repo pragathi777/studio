@@ -205,7 +205,7 @@ export default function InterviewPage() {
       <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-card px-6">
         <Logo />
         <div className="flex items-center gap-4">
-          {currentStep !== 'welcome' && (
+          {currentStep !== 'welcome' && currentStep !== 'coding' && (
             <span className="text-sm text-muted-foreground capitalize">{currentStep.replace('-', ' ')} Round</span>
           )}
         </div>
@@ -231,3 +231,5 @@ export default function InterviewPage() {
     </div>
   );
 }
+
+    
