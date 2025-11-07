@@ -5,7 +5,7 @@
  *
  * - processHrAnswer - The main function to process the user's audio response.
  * - ProcessHrAnswerInput - The input type for the processHrAnswer function.
- * - ProcessHrAnswerOutput - The output type for the processHrAnswer function.
+ * - ProcessHrAnswerOutput - The return type for the processHrAnswer function.
  */
 
 import {ai} from '@/ai/genkit';
