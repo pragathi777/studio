@@ -11,13 +11,13 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
-export const GenerateCodingQuestionInputSchema = z.object({
+const GenerateCodingQuestionInputSchema = z.object({
   difficulty: z.enum(['Easy', 'Medium', 'Hard']).describe('The difficulty level of the question.'),
 });
-export type GenerateCodingQuestionInput = z.infer<typeof GenerateCodingQuestionInputSchema>;
+type GenerateCodingQuestionInput = z.infer<typeof GenerateCodingQuestionInputSchema>;
 
 
-export const GenerateCodingQuestionOutputSchema = z.object({
+const GenerateCodingQuestionOutputSchema = z.object({
   title: z.string().describe('The title of the coding problem, e.g., "55. Jump Game".'),
   difficulty: z.enum(['Easy', 'Medium', 'Hard']).describe('The difficulty level of the question.'),
   description: z.string().describe('A detailed description of the problem statement in Markdown format.'),

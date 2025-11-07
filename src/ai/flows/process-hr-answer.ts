@@ -25,7 +25,7 @@ const ProcessHrAnswerInputSchema = z.object({
       "The user's spoken answer, as a data URI. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
     ),
 });
-export type ProcessHrAnswerInput = z.infer<
+type ProcessHrAnswerInput = z.infer<
   typeof ProcessHrAnswerInputSchema
 >;
 

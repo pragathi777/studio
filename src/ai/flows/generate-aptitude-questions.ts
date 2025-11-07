@@ -16,7 +16,7 @@ const GenerateAptitudeQuestionsInputSchema = z.object({
     .default(3)
     .describe('The number of aptitude questions to generate.'),
 });
-export type GenerateAptitudeQuestionsInput = z.infer<
+type GenerateAptitudeQuestionsInput = z.infer<
   typeof GenerateAptitudeQuestionsInputSchema
 >;
 

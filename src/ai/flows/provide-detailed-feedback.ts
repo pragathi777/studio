@@ -11,7 +11,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import { ProctoringAnalysis } from '@/app/interview/page';
+import type { ProctoringAnalysis } from '@/app/interview/page';
 
 const ProvideDetailedFeedbackInputSchema = z.object({
   aptitudeScore: z.number().optional().describe("The candidate's score in the aptitude round (out of 100)."),

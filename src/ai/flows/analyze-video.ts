@@ -19,7 +19,7 @@ const AnalyzeVideoInputSchema = z.object({
       "A video of the candidate, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
     ),
 });
-export type AnalyzeVideoInput = z.infer<
+type AnalyzeVideoInput = z.infer<
   typeof AnalyzeVideoInputSchema
 >;
 
@@ -37,7 +37,7 @@ const AnalyzeVideoOutputSchema = z.object({
     .string()
     .describe('A brief summary of any detected malpractice, such as looking away, presence of other people, or use of unauthorized devices.'),
 });
-export type AnalyzeVideoOutput = z.infer<
+type AnalyzeVideoOutput = z.infer<
   typeof AnalyzeVideoOutputSchema
 >;
 

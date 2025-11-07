@@ -15,10 +15,10 @@ const RunCodeInputSchema = z.object({
   code: z.string().describe('The code to execute.'),
   language: z.string().describe('The programming language of the code.'),
 });
-export type RunCodeInput = z.infer<typeof RunCodeInputSchema>;
+type RunCodeInput = z.infer<typeof RunCodeInputSchema>;
 
 const RunCodeOutputSchema = z.object({
-  output: z.string().describe('The stdout of the executed code.'),
+  output: z.string().optional().describe('The stdout of the executed code.'),
   error: z.string().optional().describe('The stderr of the executed code, if any.'),
 });
 export type RunCodeOutput = z.infer<typeof RunCodeOutputSchema>;
