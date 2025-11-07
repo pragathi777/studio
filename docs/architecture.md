@@ -1,110 +1,185 @@
-# Architectural Block Diagram
+# AI-Powered Mock Interview Platform: Architecture Overview
 
-This document outlines the high-level architecture of the application. The system is composed of three primary layers: Frontend (Client-Side), Application Server (Serverless Functions), and Backend Services (Google Cloud & Firebase).
+This document provides a high-level overview of the application's architecture and includes a core code sample. It is designed to be a reference for explaining the project's structure and logic.
+
+## 1. System Architecture Diagram
+
+The application is built on a modern, decoupled architecture that separates the frontend presentation layer from the backend AI and data services.
 
 ```mermaid
 graph TD
-    subgraph Frontend (Client-Side: Next.js/React in Browser)
-        A[User] --> B(UI: ShadCN/React);
-        B --> C{Interview Flow};
-        C --> C1[Aptitude Step];
-        C --> C2[Coding Step];
-        C --> C3[HR Step];
-        C --> C4[Feedback Step];
-
-        B --> D[Dashboard];
-        D --> D1[Past Reports List];
-
-        C3 -- "Speech Input" --> E[Web Speech API];
-        E -- "Transcribed Text" --> C3;
-
-        C1 -- "Get Questions" --> F1;
-        C2 -- "Run Code" --> F2;
-        C3 -- "Get Next Question" --> F3;
-        C4 -- "Generate Feedback" --> F4;
-
-        F_FB_AUTH(Firebase Auth SDK) -- "Sign In/Out" --> B;
-        F_FB_FS(Firebase Firestore SDK) -- "Save/Read Reports" --> D;
-        F_FB_FS -- "Save Report" --> C4;
+    subgraph "Frontend (Browser)"
+        A[User] --> B{Next.js / React App};
+        B --> BA(Login / Register);
+        B --> C(Interview UI);
+        C --> C1[Aptitude Test];
+        C --> C2[Coding IDE];
+        C --> C3[HR Interview];
+        B --> D(Dashboard);
     end
 
-    subgraph Application Server (Serverless Functions)
-        F1(Flow: generateAptitudeQuestions)
-        F2(Flow: runCode)
-        F3(Flow: simulateHrInterview)
-        F4(Flow: provideDetailedFeedback)
+    subgraph "Backend (Serverless)"
+        F1(Genkit Flow: Aptitude Questions);
+        F2(Genkit Flow: Run Code & Generate Problem);
+        F3(Genkit Flow: HR Conversation);
+        F4(Genkit Flow: Final Feedback Generation);
     end
 
-    subgraph Backend Services (Google Cloud & Firebase)
-        G[Google AI: Gemini Models]
-        H[Firebase Auth]
-        I[Firestore Database]
-
-        I -- "users/{uid}" --> J[User Data];
-        I -- "interviewSessions/{sid}" --> K[Interview Reports];
+    subgraph "Google Cloud & Firebase"
+        G[Google AI: Gemini Models];
+        H[Firebase Auth];
+        I[Firestore Database];
     end
 
-    %% Frontend to App Server Connections
-    C1 --> F1;
-    C2 --> F2;
-    C3 --> F3;
-    C4 --> F4;
+    %% Connections
+    A -- "Interacts with" --> B;
+    BA -- "Uses" --> H;
+    C1 -- "Calls" --> F1;
+    C2 -- "Calls" --> F2;
+    C3 -- "Calls" --> F3;
+    D -- "Reads from" --> I;
 
-    %% App Server to Backend Connections
-    F1 --> G;
-    F2 --> G;
-    F3 --> G;
-    F4 --> G;
+    F1 -- "Powered by" --> G;
+    F2 -- "Powered by" --> G;
+    F3 -- "Powered by" --> G;
+    F4 -- "Powered by" --> G;
 
-    %% Frontend to Backend Connections
-    F_FB_AUTH --> H;
-    F_FB_FS --> I;
+    C -- "Saves all data to" --> F4;
+    F4 -- "Writes report to" --> I;
 
     %% Styling
     style A fill:#fff,stroke:#333,stroke-width:2px;
     style B fill:#e6fffa,stroke:#00bfa5;
     style C fill:#e6fffa,stroke:#00bfa5;
     style D fill:#e6fffa,stroke:#00bfa5;
-    style F_FB_AUTH fill:#fff0e6,stroke:#ff6d00;
-    style F_FB_FS fill:#fff0e6,stroke:#ff6d00;
 
-    style F1 fill:#e3f2fd,stroke:#2962ff;
-    style F2 fill:#e3f2fd,stroke:#2962ff;
-    style F3 fill:#e3f2fd,stroke:#2962ff;
-    style F4 fill:#e3f2fd,stroke:#2962ff;
-
+    style F1,F2,F3,F4 fill:#e3f2fd,stroke:#2962ff;
     style G fill:#f3e5f5,stroke:#aa00ff;
-    style H fill:#fbe9e7,stroke:#d84315;
-    I;
-    style I fill:#fbe9e7,stroke:#d84315;
-    style J fill:#fbe9e7,stroke:#d84315;
-    style K fill:#fbe9e7,stroke:#d84315;
-
+    style H,I fill:#fbe9e7,stroke:#d84315;
 ```
 
-### Layer Breakdown
+### Architectural Layers:
 
-#### 1. Frontend (Client-Side)
--   **Description**: The user-facing application built with Next.js and React, running in the browser. It manages the UI, routing, and local state.
--   **Technologies**: Next.js, React, ShadCN UI, Tailwind CSS.
--   **Key Components**:
-    -   **Interview Flow**: A multi-step component that guides the user through the aptitude, coding, and HR rounds.
-    -   **Dashboard**: Displays a summary of past interviews.
-    -   **Firebase SDK**: Handles client-side interaction with Firebase for authentication and data access.
-    -   **Web Speech API**: Used in the HR step to capture the user's voice and convert it to text.
+1.  **Frontend (Next.js/React)**: A fully interactive client-side application that handles all UI rendering and user interaction. It manages the state of the interview and communicates with the backend services.
 
-#### 2. Application Server (Serverless Functions)
--   **Description**: This layer contains the core business logic, implemented as server-side Genkit flows. These functions are responsible for interacting with the powerful Generative AI models.
--   **Technology**: Genkit (TypeScript).
--   **Key Flows**:
-    -   `generateAptitudeQuestions`: Creates questions for the aptitude test.
-    -   `runCode`: Executes code provided by the user in a sandboxed environment.
-    *   `simulateHrInterview`: Acts as the HR chatbot, generating dynamic questions.
-    *   `provideDetailedFeedback`: Synthesizes performance data from all rounds into a final report.
+2.  **AI Orchestration (Genkit)**: A serverless layer of "AI flows" that encapsulates all business logic involving generative AI. These flows are written in TypeScript and are responsible for generating questions, evaluating answers, and creating the final feedback report. This decouples the AI logic from the frontend, making it modular and easy to maintain.
 
-#### 3. Backend Services (Google Cloud & Firebase)
--   **Description**: Managed cloud services that provide the necessary infrastructure for data storage, authentication, and AI.
--   **Services**:
-    -   **Google AI (Gemini Models)**: The underlying LLMs that provide the intelligence for all AI-powered features.
-    -   **Firebase Authentication**: Manages user identity and sign-in.
-    -   **Firestore Database**: A NoSQL database that stores user data and all interview reports. Security rules ensure data privacy.
+3.  **Backend Services (Firebase & Google AI)**:
+    *   **Firebase Authentication** provides a secure and managed user login system.
+    *   **Firestore** acts as the single source of truth, storing user profiles and all data related to each interview session in real-time.
+    *   **Google Gemini** is the underlying large language model (LLM) that powers all the generative features within the Genkit flows.
+
+---
+
+## 2. Core Code Example: The Final Feedback Flow
+
+If an interviewer asks to see a piece of code, this is the perfect example. It showcases how data from different parts of the application is aggregated and used in a structured AI prompt to produce a complex, valuable output.
+
+This flow, `provideDetailedFeedback`, is the final step in the interview process. It takes all the performance data, sends it to the AI, and generates the final report.
+
+**File:** `src/ai/flows/provide-detailed-feedback.ts`
+
+```typescript
+'use server';
+
+/**
+ * @fileOverview A flow for providing detailed feedback to candidates after a mock interview.
+ */
+
+import {ai} from '@/ai/genkit';
+import {z} from 'genkit';
+
+// 1. Define the exact data structure (schema) the flow will receive.
+// This includes scores from other rounds and the HR conversation transcript.
+const ProvideDetailedFeedbackInputSchema = z.object({
+  aptitudeScore: z.number().optional().describe("The candidate's score in the aptitude round (out of 100)."),
+  codingScore: z.number().optional().describe("The candidate's score in the coding round (out of 100)."),
+  hrConversation: z.array(z.object({
+    speaker: z.enum(['user', 'ai']),
+    text: z.string(),
+  })).optional().describe('The transcript of the HR interview.'),
+  proctoringAnalysis: z.object({
+      confidenceLevel: z.number(),
+      engagementLevel: z.number(),
+      malpracticeDetected: z.boolean(),
+      tabSwitches: z.number(),
+      proctoringSummary: z.string(),
+  }).optional().describe('Analysis of proctoring data, including video analysis and tab switching.'),
+});
+
+// 2. Define the exact data structure the flow will return.
+// This ensures the AI's output is always predictable and easy to use on the frontend.
+const ProvideDetailedFeedbackOutputSchema = z.object({
+  feedbackReport: z.string().describe('A concise feedback report in Markdown with a few key strengths and areas for improvement.'),
+  overallScore: z.number().describe("The candidate's overall weighted score for the entire interview (out of 100)."),
+});
+
+
+// This is the main function the client-side code will call.
+export async function provideDetailedFeedback(
+  input: z.infer<typeof ProvideDetailedFeedbackInputSchema>
+): Promise<z.infer<typeof ProvideDetailedFeedbackOutputSchema>> {
+  return provideDetailedFeedbackFlow(input);
+}
+
+
+// 3. Define the prompt template that will be sent to the Gemini AI model.
+// Using Handlebars syntax ({{...}}), we inject the dynamic data into the prompt.
+const prompt = ai.definePrompt({
+  name: 'provideDetailedFeedbackPrompt',
+  input: {schema: ProvideDetailedFeedbackInputSchema},
+  output: {schema: ProvideDetailedFeedbackOutputSchema},
+  prompt: `You are an AI career coach providing concise, actionable feedback after a mock interview.
+
+  **Candidate's Performance Data:**
+  - Aptitude Score: {{aptitudeScore}}%
+  - Coding Score: {{codingScore}}%
+  {{#if proctoringAnalysis}}
+  - Proctoring Flags: {{proctoringAnalysis.tabSwitches}} tab switches. {{proctoringAnalysis.proctoringSummary}}
+  {{/if}}
+  - HR Interview Transcript:
+  {{#each hrConversation}}
+    {{#if (eq speaker 'user')}}Candidate: {{else}}Interviewer: {{/if}}{{{text}}}
+  {{/each}}
+
+  **Your Task:**
+
+  1.  **Calculate Overall Score:**
+      - Weighting: HR (40%), Coding (30%), Aptitude (30%).
+      - Analyze the HR transcript for clarity, confidence, and relevance to determine a score out of 100.
+      - Apply a penalty for proctoring flags (e.g., -10 points for tab switches).
+      - Calculate the final weighted score.
+
+  2.  **Generate Feedback Report (Markdown):**
+      - **### Key Strengths:** List 2-3 bullet points on what the candidate did well.
+      - **### Areas for Improvement:** List 2-3 specific, actionable bullet points for improvement. Provide brief examples.
+      - Keep the entire report concise and easy to read.
+
+  Your tone must be supportive and expert. The goal is to provide clear insights for growth.
+  `,
+  customize: (prompt) => {
+    prompt.options = {
+      ...prompt.options,
+      helpers: {
+        eq: (a: any, b: any) => a === b,
+      },
+    };
+    return prompt;
+  },
+});
+
+
+// 4. Define the Genkit flow itself.
+// This wraps the prompt and handles the actual call to the AI model.
+const provideDetailedFeedbackFlow = ai.defineFlow(
+  {
+    name: 'provideDetailedFeedbackFlow',
+    inputSchema: ProvideDetailedFeedbackInputSchema,
+    outputSchema: ProvideDetailedFeedbackOutputSchema,
+  },
+  async input => {
+    const {output} = await prompt(input);
+    return output!;
+  }
+);
+```
