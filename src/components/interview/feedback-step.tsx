@@ -24,37 +24,39 @@ interface FeedbackStepProps {
 const FeedbackStep: React.FC<FeedbackStepProps> = ({ interviewData, userId }) => {
   const [feedbackResult, setFeedbackResult] = useState<ProvideDetailedFeedbackOutput | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSaved, setIsSaved] = useState(false);
   const firestore = useFirestore();
 
   useEffect(() => {
     const getFeedbackAndSave = async () => {
+      if (!userId || !firestore || isSaved) return;
+
       setIsLoading(true);
       try {
         const result = await provideDetailedFeedback({
             aptitudeScore: interviewData.aptitudeScore,
             codingScore: interviewData.codingScore,
-            hrConversation: interviewData.hrAnalysis?.conversation,
+            hrConversation: interviewData.hrConversation,
             proctoringAnalysis: interviewData.proctoringAnalysis,
         });
         setFeedbackResult(result);
 
-        if (userId && firestore) {
-          const interviewSessionsRef = collection(firestore, 'users', userId, 'interviewSessions');
-          
-          const sessionData = {
-            userId,
-            jobTitle: interviewData.jobTitle,
-            startTime: serverTimestamp(), // This will be set on the server
-            endTime: serverTimestamp(), // This will be set on the server
-            overallScore: result.overallScore,
-            aptitudeScore: interviewData.aptitudeScore ?? null,
-            codingScore: interviewData.codingScore ?? null,
-            feedbackReport: result.feedbackReport,
-            proctoringAnalysis: interviewData.proctoringAnalysis ?? null,
-          };
-          
-          addDocumentNonBlocking(interviewSessionsRef, sessionData);
-        }
+        const sessionData = {
+          userId,
+          jobTitle: interviewData.jobTitle,
+          startTime: serverTimestamp(),
+          endTime: serverTimestamp(),
+          overallScore: result.overallScore,
+          aptitudeScore: interviewData.aptitudeScore ?? null,
+          codingScore: interviewData.codingScore ?? null,
+          feedbackReport: result.feedbackReport,
+          hrConversation: interviewData.hrConversation ?? null,
+          proctoringAnalysis: interviewData.proctoringAnalysis ?? null,
+        };
+        
+        const interviewSessionsRef = collection(firestore, 'users', userId, 'interviewSessions');
+        await addDocumentNonBlocking(interviewSessionsRef, sessionData);
+        setIsSaved(true);
 
       } catch (error) {
         console.error("Failed to generate or save feedback:", error);
@@ -66,10 +68,9 @@ const FeedbackStep: React.FC<FeedbackStepProps> = ({ interviewData, userId }) =>
         setIsLoading(false);
       }
     };
-    if (userId && firestore) {
-      getFeedbackAndSave();
-    }
-  }, [interviewData, userId, firestore]);
+    
+    getFeedbackAndSave();
+  }, [interviewData, userId, firestore, isSaved]);
 
   const renderMarkdown = (markdown: string) => {
     // A simple markdown to JSX renderer

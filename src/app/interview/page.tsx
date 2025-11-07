@@ -21,9 +21,7 @@ import { cn } from "@/lib/utils";
 
 type InterviewStep = "welcome" | "aptitude" | "aptitude-results" | "coding" | "hr" | "feedback" | "failed";
 
-export type HRAnalysis = {
-  conversation: { speaker: 'user' | 'ai'; text: string }[];
-}
+export type HRConversation = { speaker: 'user' | 'ai'; text: string }[];
 
 export type ProctoringAnalysis = AnalyzeFacialExpressionsOutput & {
   tabSwitches: number;
@@ -34,7 +32,7 @@ export type InterviewData = {
   jobTitle: string;
   aptitudeScore?: number;
   codingScore?: number;
-  hrAnalysis?: HRAnalysis;
+  hrConversation?: HRConversation;
   proctoringAnalysis?: ProctoringAnalysis,
   finalFeedback?: string;
   overallScore?: number;
@@ -176,8 +174,8 @@ export default function InterviewPage() {
       case "hr":
         return (
           <HRStep
-            onNext={(analysis) => {
-              updateInterviewData({ hrAnalysis: analysis });
+            onNext={(conversation) => {
+              updateInterviewData({ hrConversation: conversation });
               setIsProctoringActive(false);
               setCurrentStep("feedback");
             }}
@@ -212,7 +210,12 @@ export default function InterviewPage() {
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-card px-6">
-        <Logo />
+        <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
+          <Logo />
+            <h1 className="text-xl font-bold font-headline text-foreground">
+            AI Interviews
+          </h1>
+        </Link>
         <div className="flex items-center gap-4">
           {currentStep !== 'welcome' && currentStep !== 'coding' && (
             <span className="text-sm text-muted-foreground capitalize">{currentStep.replace('-', ' ')} Round</span>
@@ -240,5 +243,3 @@ export default function InterviewPage() {
     </div>
   );
 }
-
-    

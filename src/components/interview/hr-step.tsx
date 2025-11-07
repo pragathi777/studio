@@ -4,124 +4,127 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { Loader2, Mic, MicOff, Video } from "lucide-react";
-import { simulateHrInterview } from "@/ai/flows/simulate-hr-interview";
+import { Loader2, Mic, MicOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { processHrAnswer } from "@/ai/flows/process-hr-answer";
 
+type ConversationTurn = { speaker: 'ai' | 'user'; text: string };
 
 interface HRStepProps {
-  onNext: (analysis: { conversation: { speaker: 'ai' | 'user'; text: string }[] }) => void;
+  onNext: (conversation: ConversationTurn[]) => void;
 }
 
 const HRStep: React.FC<HRStepProps> = ({ onNext }) => {
   const [isLoading, setIsLoading] = useState(true);
-  const [isListening, setIsListening] = useState(false);
-  const [conversation, setConversation] = useState<{ speaker: 'ai' | 'user'; text: string }[]>([]);
+  const [isRecording, setIsRecording] = useState(false);
+  const [conversation, setConversation] = useState<ConversationTurn[]>([]);
   const [hasCameraPermission, setHasCameraPermission] = useState(true);
   
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
-  const transcriptRef = useRef<string>("");
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
   const conversationEndRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const { toast } = useToast();
 
   useEffect(() => {
-    const getCameraPermission = async () => {
+    const getCameraAndMicPermission = async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
         setHasCameraPermission(true);
-
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
         }
       } catch (error) {
-        console.error('Error accessing camera:', error);
+        console.error('Error accessing camera/mic:', error);
         setHasCameraPermission(false);
         toast({
           variant: 'destructive',
-          title: 'Camera Access Denied',
-          description: 'Please enable camera permissions in your browser settings to use this feature.',
+          title: 'Device Access Denied',
+          description: 'Please enable camera and microphone permissions to use this feature.',
         });
       }
     };
 
-    getCameraPermission();
+    getCameraAndMicPermission();
   }, [toast]);
 
+  const getAiResponse = async (currentConversation: ConversationTurn[], audioDataUri?: string) => {
+    setIsLoading(true);
+    try {
+      const response = await processHrAnswer({
+        candidateName: "Candidate",
+        jobTitle: "Software Engineer",
+        interviewHistory: currentConversation,
+        audioDataUri: audioDataUri
+      });
+
+      const newConversation: ConversationTurn[] = [...currentConversation];
+      if (response.userTranscript) {
+        newConversation.push({ speaker: 'user', text: response.userTranscript });
+      }
+      newConversation.push({ speaker: 'ai', text: response.nextQuestion });
+
+      setConversation(newConversation);
+
+    } catch (e) {
+      console.error(e);
+      toast({ variant: 'destructive', title: 'Error', description: 'Could not get AI response.' });
+      setConversation(prev => [...prev, { speaker: 'ai', text: "Apologies, I encountered an issue. Let's try another question: Can you tell me about a challenging project you worked on?" }]);
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
   useEffect(() => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (SpeechRecognition) {
-      const recognition = new SpeechRecognition();
-      recognition.continuous = true;
-      recognition.interimResults = true;
-
-      recognition.onresult = (event) => {
-        let interimTranscript = '';
-        for (let i = event.resultIndex; i < event.results.length; ++i) {
-          if (event.results[i].isFinal) {
-            transcriptRef.current += event.results[i][0].transcript + ' ';
-          } else {
-            interimTranscript += event.results[i][0].transcript;
-          }
-        }
-      };
-
-      recognition.onend = () => {
-        setIsListening(false);
-        const userText = transcriptRef.current.trim();
-        if (userText) {
-          const newConversation = [...conversation, { speaker: 'user' as const, text: userText }];
-          setConversation(newConversation);
-          getAiResponse(newConversation);
-        }
-        transcriptRef.current = "";
-      };
-
-      recognitionRef.current = recognition;
-    }
-
-    const startInterview = async () => {
-        getAiResponse([]);
-    }
-    startInterview();
-
-    return () => {
-      recognitionRef.current?.stop();
-    };
-     // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Start the interview with the first question
+    getAiResponse([]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     conversationEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [conversation]);
 
-
-  const getAiResponse = async (currentConversation: typeof conversation) => {
-    setIsLoading(true);
-    try {
-      const response = await simulateHrInterview({
-        candidateName: "John Doe",
-        jobTitle: "Software Engineer",
-        candidateResume: "Experienced in React and Node.js",
-        interviewHistory: currentConversation.map(c => ({ speaker: c.speaker, text: c.text })),
-      });
-      setConversation(prev => [...prev, { speaker: 'ai', text: response.nextQuestion }]);
-    } catch (e) {
-      console.error(e);
-      setConversation(prev => [...prev, { speaker: 'ai', text: "Interesting. Can you tell me about a challenging project you worked on?" }]);
-    } finally {
-      setIsLoading(false);
+  const startRecording = async () => {
+    if (!hasCameraPermission) {
+        toast({ variant: 'destructive', title: 'Microphone Required', description: 'Please enable microphone permissions first.' });
+        return;
     }
-  }
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaRecorderRef.current = new MediaRecorder(stream);
 
-  const handleToggleListening = () => {
-    if (isListening) {
-      recognitionRef.current?.stop();
+    mediaRecorderRef.current.ondataavailable = (event) => {
+      audioChunksRef.current.push(event.data);
+    };
+
+    mediaRecorderRef.current.onstop = async () => {
+      const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+      const reader = new FileReader();
+      reader.readAsDataURL(audioBlob);
+      reader.onloadend = () => {
+        const base64Audio = reader.result as string;
+        // The conversation state passed here does not yet include the user's latest turn
+        getAiResponse(conversation, base64Audio);
+      };
+      audioChunksRef.current = [];
+      stream.getTracks().forEach(track => track.stop()); // Stop the mic stream
+    };
+
+    mediaRecorderRef.current.start();
+    setIsRecording(true);
+  };
+
+  const stopRecording = () => {
+    mediaRecorderRef.current?.stop();
+    setIsRecording(false);
+  };
+
+  const handleToggleRecording = () => {
+    if (isRecording) {
+      stopRecording();
     } else {
-      transcriptRef.current = "";
-      recognitionRef.current?.start();
-      setIsListening(true);
+      startRecording();
     }
   };
 
@@ -129,7 +132,7 @@ const HRStep: React.FC<HRStepProps> = ({ onNext }) => {
     <Card className="flex flex-col w-full max-h-[85vh] h-full">
       <CardHeader>
         <CardTitle className="font-headline">HR Interview</CardTitle>
-        <CardDescription>The AI will ask questions. Click the mic to speak your answer.</CardDescription>
+        <CardDescription>The AI will ask questions. Click the mic to record your answer.</CardDescription>
       </CardHeader>
       
       <div className="flex-grow grid md:grid-cols-2 gap-4 overflow-hidden p-6 pt-0">
@@ -142,19 +145,11 @@ const HRStep: React.FC<HRStepProps> = ({ onNext }) => {
                 </div>
             </div>
             ))}
-            {isLoading && conversation.length > 0 && (
+            {isLoading && (
             <div className="flex justify-start">
                 <div className="p-3 rounded-lg bg-muted flex items-center gap-2">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                <span>Thinking...</span>
-                </div>
-            </div>
-            )}
-            {isLoading && conversation.length === 0 && (
-            <div className="flex justify-center">
-                <div className="p-3 rounded-lg bg-muted flex items-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span>Preparing the first question...</span>
+                <span>Processing...</span>
                 </div>
             </div>
             )}
@@ -163,13 +158,13 @@ const HRStep: React.FC<HRStepProps> = ({ onNext }) => {
         </div>
         
         <div className="relative h-full bg-muted rounded-md flex items-center justify-center">
-            <video ref={videoRef} className="w-full aspect-video rounded-md" autoPlay muted />
+            <video ref={videoRef} className="w-full aspect-video rounded-md" autoPlay muted playsInline />
             {!hasCameraPermission && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 p-4">
                      <Alert variant="destructive">
-                        <AlertTitle>Camera Access Required</AlertTitle>
+                        <AlertTitle>Camera & Mic Access Required</AlertTitle>
                         <AlertDescription>
-                            Please allow camera access to use this feature. You may need to enable permissions in your browser settings and refresh the page.
+                            Please allow camera and microphone access to use this feature. You may need to enable permissions in your browser settings and refresh the page.
                         </AlertDescription>
                     </Alert>
                 </div>
@@ -181,17 +176,18 @@ const HRStep: React.FC<HRStepProps> = ({ onNext }) => {
         <Button
           size="lg"
           className="rounded-full w-20 h-20"
-          onClick={handleToggleListening}
-          disabled={!recognitionRef.current || isLoading || !hasCameraPermission}
-          variant={isListening ? 'destructive' : 'default'}
+          onClick={handleToggleRecording}
+          disabled={isLoading || !hasCameraPermission}
+          variant={isRecording ? 'destructive' : 'default'}
         >
-          {isListening ? <MicOff className="h-8 w-8" /> : <Mic className="h-8 w-8" />}
+          {isRecording ? <MicOff className="h-8 w-8" /> : <Mic className="h-8 w-8" />}
         </Button>
 
-        <Button onClick={() => onNext({ conversation: conversation })} className="w-full mt-4">End Interview & Get Feedback</Button>
+        <Button onClick={() => onNext(conversation)} className="w-full mt-4" disabled={isRecording}>End Interview & Get Feedback</Button>
       </CardFooter>
     </Card>
   );
 };
 
 export default HRStep;
+
