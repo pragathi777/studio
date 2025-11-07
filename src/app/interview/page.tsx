@@ -14,9 +14,15 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useUser } from "@/firebase";
 import { Proctoring } from "@/components/interview/proctoring";
-import { analyzeFacialExpressions, AnalyzeFacialExpressionsOutput } from "@/ai/flows/analyze-facial-expressions";
+import { analyzeFacialExpressions } from "@/ai/flows/analyze-facial-expressions";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
+
+type AnalyzeFacialExpressionsOutput = {
+    confidenceLevel: number;
+    engagementLevel: number;
+    malpracticeDetected: boolean;
+};
 
 
 type InterviewStep = "welcome" | "aptitude" | "aptitude-results" | "coding" | "hr" | "feedback" | "failed";

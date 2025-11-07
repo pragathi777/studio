@@ -4,10 +4,11 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { Loader2, Mic, MicOff } from "lucide-react";
+import { Loader2, Mic, Square } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { processHrAnswer } from "@/ai/flows/process-hr-answer";
+import { simulateHrInterview } from "@/ai/flows/simulate-hr-interview";
+import { Textarea } from "@/components/ui/textarea";
 
 type ConversationTurn = { speaker: 'ai' | 'user'; text: string };
 
@@ -19,25 +20,71 @@ const HRStep: React.FC<HRStepProps> = ({ onNext }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isRecording, setIsRecording] = useState(false);
   const [conversation, setConversation] = useState<ConversationTurn[]>([]);
-  const [hasCameraPermission, setHasCameraPermission] = useState(true);
-  
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
+  const [hasPermission, setHasPermission] = useState(true);
+  const [transcript, setTranscript] = useState("");
+
+  const speechRecognitionRef = useRef<SpeechRecognition | null>(null);
   const conversationEndRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const { toast } = useToast();
+
+  // 1. Setup Speech Recognition
+  useEffect(() => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      toast({
+        variant: 'destructive',
+        title: 'Browser Not Supported',
+        description: 'Your browser does not support speech recognition. Please try Chrome or Edge.',
+      });
+      setHasPermission(false);
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+
+    recognition.onresult = (event) => {
+      let finalTranscript = '';
+      let interimTranscript = '';
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        if (event.results[i].isFinal) {
+          finalTranscript += event.results[i][0].transcript;
+        } else {
+          interimTranscript += event.results[i][0].transcript;
+        }
+      }
+      setTranscript(prev => prev + finalTranscript);
+    };
+
+    recognition.onerror = (event) => {
+      console.error('Speech recognition error:', event.error);
+      toast({ variant: 'destructive', title: 'Speech Error', description: `An error occurred: ${event.error}` });
+      setIsRecording(false);
+    };
+
+    recognition.onend = () => {
+      setIsRecording(false);
+    };
+
+    speechRecognitionRef.current = recognition;
+
+  }, [toast]);
+  
 
   useEffect(() => {
     const getCameraAndMicPermission = async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-        setHasCameraPermission(true);
+        setHasPermission(true);
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
         }
       } catch (error) {
         console.error('Error accessing camera/mic:', error);
-        setHasCameraPermission(false);
+        setHasPermission(false);
         toast({
           variant: 'destructive',
           title: 'Device Access Denied',
@@ -49,23 +96,16 @@ const HRStep: React.FC<HRStepProps> = ({ onNext }) => {
     getCameraAndMicPermission();
   }, [toast]);
 
-  const getAiResponse = async (currentConversation: ConversationTurn[], audioDataUri?: string) => {
+  const getAiResponse = async (currentConversation: ConversationTurn[]) => {
     setIsLoading(true);
     try {
-      const response = await processHrAnswer({
+      const response = await simulateHrInterview({
         candidateName: "Candidate",
         jobTitle: "Software Engineer",
         interviewHistory: currentConversation,
-        audioDataUri: audioDataUri
       });
 
-      const newConversation: ConversationTurn[] = [...currentConversation];
-      if (response.userTranscript) {
-        newConversation.push({ speaker: 'user', text: response.userTranscript });
-      }
-      newConversation.push({ speaker: 'ai', text: response.nextQuestion });
-
-      setConversation(newConversation);
+      setConversation(prev => [...prev, { speaker: 'ai', text: response.nextQuestion }]);
 
     } catch (e) {
       console.error(e);
@@ -76,8 +116,8 @@ const HRStep: React.FC<HRStepProps> = ({ onNext }) => {
     }
   }
 
+  // Get first question on component mount
   useEffect(() => {
-    // Start the interview with the first question
     getAiResponse([]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -86,53 +126,38 @@ const HRStep: React.FC<HRStepProps> = ({ onNext }) => {
     conversationEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [conversation]);
 
-  const startRecording = async () => {
-    if (!hasCameraPermission) {
-        toast({ variant: 'destructive', title: 'Microphone Required', description: 'Please enable microphone permissions first.' });
-        return;
-    }
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    mediaRecorderRef.current = new MediaRecorder(stream);
 
-    mediaRecorderRef.current.ondataavailable = (event) => {
-      audioChunksRef.current.push(event.data);
-    };
-
-    mediaRecorderRef.current.onstop = async () => {
-      const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-      const reader = new FileReader();
-      reader.readAsDataURL(audioBlob);
-      reader.onloadend = () => {
-        const base64Audio = reader.result as string;
-        // The conversation state passed here does not yet include the user's latest turn
-        getAiResponse(conversation, base64Audio);
-      };
-      audioChunksRef.current = [];
-      stream.getTracks().forEach(track => track.stop()); // Stop the mic stream
-    };
-
-    mediaRecorderRef.current.start();
-    setIsRecording(true);
-  };
-
-  const stopRecording = () => {
-    mediaRecorderRef.current?.stop();
-    setIsRecording(false);
-  };
-
-  const handleToggleRecording = () => {
-    if (isRecording) {
-      stopRecording();
+  const handleStartRecording = () => {
+    if (speechRecognitionRef.current && hasPermission) {
+      setTranscript(""); // Clear previous transcript
+      speechRecognitionRef.current.start();
+      setIsRecording(true);
     } else {
-      startRecording();
+        toast({ variant: 'destructive', title: 'Cannot start recording', description: 'Speech recognition is not available or permissions were denied.' });
     }
   };
+
+  const handleStopRecording = () => {
+    if (speechRecognitionRef.current) {
+      speechRecognitionRef.current.stop();
+      setIsRecording(false);
+      
+      // Send final transcript to get next question
+      if(transcript.trim()) {
+        const newConversation: ConversationTurn[] = [...conversation, { speaker: 'user', text: transcript }];
+        setConversation(newConversation);
+        getAiResponse(newConversation);
+        setTranscript(""); // Clear the text area
+      }
+    }
+  };
+
 
   return (
     <Card className="flex flex-col w-full max-h-[85vh] h-full">
       <CardHeader>
         <CardTitle className="font-headline">HR Interview</CardTitle>
-        <CardDescription>The AI will ask questions. Click the mic to record your answer.</CardDescription>
+        <CardDescription>The AI will ask questions. Click the mic to speak your answer.</CardDescription>
       </CardHeader>
       
       <div className="flex-grow grid md:grid-cols-2 gap-4 overflow-hidden p-6 pt-0">
@@ -145,21 +170,27 @@ const HRStep: React.FC<HRStepProps> = ({ onNext }) => {
                 </div>
             </div>
             ))}
-            {isLoading && (
-            <div className="flex justify-start">
-                <div className="p-3 rounded-lg bg-muted flex items-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span>Processing...</span>
-                </div>
-            </div>
+            {isLoading && conversation.length > 0 && (
+              <div className="flex justify-start">
+                  <div className="p-3 rounded-lg bg-muted flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Thinking...</span>
+                  </div>
+              </div>
             )}
             <div ref={conversationEndRef} />
             </div>
+            <Textarea
+              placeholder={isRecording ? "Listening..." : "Your transcribed answer will appear here."}
+              value={transcript}
+              readOnly
+              className="mt-4 h-24 bg-muted/50"
+            />
         </div>
         
         <div className="relative h-full bg-muted rounded-md flex items-center justify-center">
             <video ref={videoRef} className="w-full aspect-video rounded-md" autoPlay muted playsInline />
-            {!hasCameraPermission && (
+            {!hasPermission && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 p-4">
                      <Alert variant="destructive">
                         <AlertTitle>Camera & Mic Access Required</AlertTitle>
@@ -176,18 +207,17 @@ const HRStep: React.FC<HRStepProps> = ({ onNext }) => {
         <Button
           size="lg"
           className="rounded-full w-20 h-20"
-          onClick={handleToggleRecording}
-          disabled={isLoading || !hasCameraPermission}
+          onClick={isRecording ? handleStopRecording : handleStartRecording}
+          disabled={isLoading || !hasPermission}
           variant={isRecording ? 'destructive' : 'default'}
         >
-          {isRecording ? <MicOff className="h-8 w-8" /> : <Mic className="h-8 w-8" />}
+          {isRecording ? <Square className="h-8 w-8" /> : <Mic className="h-8 w-8" />}
         </Button>
 
-        <Button onClick={() => onNext(conversation)} className="w-full mt-4" disabled={isRecording}>End Interview & Get Feedback</Button>
+        <Button onClick={() => onNext(conversation)} className="w-full mt-4" disabled={isRecording || isLoading}>End Interview & Get Feedback</Button>
       </CardFooter>
     </Card>
   );
 };
 
 export default HRStep;
-
