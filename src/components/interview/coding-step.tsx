@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, AlertTriangle } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { runCode } from "@/ai/flows/run-code";
+import { runCode, RunCodeOutput } from "@/ai/flows/run-code";
 import { generateCodingQuestion, GenerateCodingQuestionOutput } from "@/ai/flows/generate-coding-question";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -152,16 +152,16 @@ const CodingStep: React.FC<CodingStepProps> = ({ onNext }) => {
   return (
     <ResizablePanelGroup direction="horizontal" className="h-[calc(100vh-4rem)] w-full bg-[#0d1117] text-white">
         <ResizablePanel defaultSize={40}>
-            <div className="h-full flex flex-col bg-[#161b22] m-2 rounded-lg">
+            <Tabs defaultValue="description" className="h-full flex flex-col bg-[#161b22] m-2 rounded-lg">
                 <div className="p-2 border-b border-[#30363d]">
                     <TabsList className="bg-[#161b22]">
                         <TabsTrigger value="description" className="data-[state=active]:bg-[#21262d] data-[state=active]:text-white">Description</TabsTrigger>
                     </TabsList>
                 </div>
-                <div className="flex-grow p-4 pt-2 overflow-auto">
+                <TabsContent value="description" className="flex-grow p-4 pt-2 overflow-auto mt-0">
                     {renderProblemContent()}
-                </div>
-            </div>
+                </TabsContent>
+            </Tabs>
         </ResizablePanel>
         <ResizableHandle withHandle className="bg-[#0d1117]" />
         <ResizablePanel defaultSize={60}>
@@ -213,6 +213,7 @@ const CodingStep: React.FC<CodingStepProps> = ({ onNext }) => {
                                     {isRunning && output === 'Compiling...' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                     Run Code
                                 </Button>
+
                                 <Button onClick={handleSubmit} disabled={isRunning || isProblemLoading || !!problemError} className="bg-green-600 hover:bg-green-700 text-white">
                                     {isRunning && output !== 'Compiling...' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                     Submit & Next
@@ -228,3 +229,5 @@ const CodingStep: React.FC<CodingStepProps> = ({ onNext }) => {
 };
 
 export default CodingStep;
+
+    
