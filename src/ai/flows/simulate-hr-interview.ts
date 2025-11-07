@@ -15,7 +15,6 @@ import {z} from 'genkit';
 const SimulateHrInterviewInputSchema = z.object({
   candidateName: z.string().describe('The name of the candidate.'),
   jobTitle: z.string().describe('The job title the candidate is interviewing for.'),
-  candidateResume: z.string().describe('The resume of the candidate.'),
   interviewHistory: z.array(z.object({
     speaker: z.enum(['user', 'ai']),
     text: z.string(),
@@ -43,14 +42,13 @@ const prompt = ai.definePrompt({
   prompt: `You are an expert HR interviewer for a top tech company in India.
 
   Your task is to conduct a one-on-one interview with a candidate. Your goal is to assess their suitability for the role, their skills, and their cultural fit.
-  You should ask relevant questions based on the candidate's resume, the job title they are applying for, and the conversation history.
+  You should ask relevant questions based on the candidate's profile, the job title they are applying for, and the conversation history.
   
   Be conversational, and ask insightful follow-up questions to probe deeper into the candidate's knowledge and experience. Your questions should feel natural and adapt to the flow of the conversation.
   Analyze the candidate's responses for clarity, confidence, and relevance.
 
   Candidate Name: {{{candidateName}}}
   Job Title: {{{jobTitle}}}
-  Candidate Resume: {{{candidateResume}}}
   
   Conversation History:
   {{#each interviewHistory}}
