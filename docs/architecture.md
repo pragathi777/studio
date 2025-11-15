@@ -73,9 +73,9 @@ graph TD
 
 ## 2. Core Code Example: The Final Feedback Flow
 
-If an interviewer asks to see a piece of code, this is the perfect example. It showcases how data from different parts of the application is aggregated and used in a structured AI prompt to produce a complex, valuable output.
+This is the most important piece of code in the project. It showcases how data from different parts of the application is aggregated and used in a structured AI prompt to produce a complex, valuable output.
 
-This flow, `provideDetailedFeedback`, is the final step in the interview process. It takes all the performance data, sends it to the AI, and generates the final report.
+This flow, `provideDetailedFeedback`, is the final step in the interview process. It takes all the candidate's performance data, sends it to the AI, and generates the final report.
 
 **File:** `src/ai/flows/provide-detailed-feedback.ts`
 
@@ -90,7 +90,7 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 // 1. Define the exact data structure (schema) the flow will receive.
-// This includes scores from other rounds and the HR conversation transcript.
+// This includes scores from other rounds, the HR conversation transcript, and proctoring analysis.
 const ProvideDetailedFeedbackInputSchema = z.object({
   aptitudeScore: z.number().optional().describe("The candidate's score in the aptitude round (out of 100)."),
   codingScore: z.number().optional().describe("The candidate's score in the coding round (out of 100)."),
