@@ -1,9 +1,8 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Loader2, AlertTriangle } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { runCode } from "@/ai/flows/run-code";
@@ -17,12 +16,26 @@ import {
 } from "@/components/ui/resizable";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import CodeMirror from '@uiw/react-codemirror';
+import { javascript } from '@codemirror/lang-javascript';
+import { python } from '@codemirror/lang-python';
+import { java } from '@codemirror/lang-java';
+import { cpp } from '@codemirror/lang-cpp';
+import { vscodeDark } from '@uiw/codemirror-theme-vscode';
 
 interface CodingStepProps {
   onNext: (score: number) => void;
 }
 
-type Language = keyof GenerateCodingQuestionOutput["solutionTemplates"];
+type Language = 'python' | 'javascript' | 'java' | 'c' | 'cpp';
+
+const languageExtensions = {
+    python: [python()],
+    javascript: [javascript({ typescript: false })],
+    java: [java()],
+    c: [cpp()],
+    cpp: [cpp()],
+}
 
 const defaultProblem: GenerateCodingQuestionOutput = {
     title: "70. Climbing Stairs",
@@ -139,6 +152,10 @@ const CodingStep: React.FC<CodingStepProps> = ({ onNext }) => {
       setCode(problem.solutionTemplates[lang]);
       setOutput("You must run your code first");
   }
+  
+  const onCodeChange = useCallback((value: string) => {
+    setCode(value);
+  }, []);
 
   const handleRunCode = async () => {
     setIsRunning(true);
@@ -255,12 +272,14 @@ const CodingStep: React.FC<CodingStepProps> = ({ onNext }) => {
                                 </SelectContent>
                             </Select>
                         </div>
-                        <Textarea
+                        <CodeMirror
                             value={code}
-                            onChange={(e) => setCode(e.target.value)}
-                            placeholder="Loading code template..."
-                            className="h-full w-full font-code bg-[#0d1117] border-0 rounded-none focus-visible:ring-0 text-gray-300 flex-grow"
-                            disabled={isProblemLoading || !problem}
+                            onChange={onCodeChange}
+                            theme={vscodeDark}
+                            extensions={languageExtensions[language]}
+                            height="100%"
+                            className="h-full w-full font-code text-base flex-grow"
+                            readOnly={isProblemLoading || !problem}
                         />
                     </div>
                 </ResizablePanel>
@@ -301,5 +320,3 @@ const CodingStep: React.FC<CodingStepProps> = ({ onNext }) => {
 };
 
 export default CodingStep;
-
-    
