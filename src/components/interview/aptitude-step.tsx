@@ -27,7 +27,7 @@ const AptitudeStep: React.FC<AptitudeStepProps> = ({ onNext }) => {
   const [selectedAnswer, setSelectedAnswer] = useState<string>("");
   const [userAnswers, setUserAnswers] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [timeLeft, setTimeLeft] = useState(15 * 60); // 15 minutes in seconds
+  const [timeLeft, setTimeLeft] = useState(10 * 60); // 10 minutes in seconds
   const [showTimeoutAlert, setShowTimeoutAlert] = useState(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
