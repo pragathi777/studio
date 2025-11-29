@@ -54,7 +54,7 @@ const AptitudeStep: React.FC<AptitudeStepProps> = ({ onNext }) => {
   useEffect(() => {
     const fetchQuestions = async () => {
       try {
-        const result = await generateAptitudeQuestions({ numberOfQuestions: 10 });
+        const result = await generateAptitudeQuestions({ numberOfQuestions: 5 });
         const formattedQuestions = result.questions.map(q => ({
             ...q,
             options: shuffleArray(q.options)
