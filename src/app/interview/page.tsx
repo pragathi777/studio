@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import WelcomeStep from "@/components/interview/welcome-step";
 import AptitudeStep from "@/components/interview/aptitude-step";
 import AptitudeResultsStep from "@/components/interview/aptitude-results-step";
@@ -15,7 +15,7 @@ import Link from "next/link";
 import { useUser } from "@/firebase";
 import { Proctoring } from "@/components/interview/proctoring";
 import { analyzeFacialExpressions } from "@/ai/flows/analyze-facial-expressions";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 type AnalyzeFacialExpressionsOutput = {
@@ -44,8 +44,20 @@ export type InterviewData = {
   overallScore?: number;
 };
 
+// Use React.Suspense for the page component
 export default function InterviewPage() {
-  const [currentStep, setCurrentStep] = useState<InterviewStep>("welcome");
+  return (
+    <React.Suspense fallback={<div>Loading...</div>}>
+      <InterviewPageContent />
+    </React.Suspense>
+  );
+}
+
+function InterviewPageContent() {
+  const searchParams = useSearchParams();
+  const startStep = searchParams.get('start');
+
+  const [currentStep, setCurrentStep] = useState<InterviewStep>(startStep === 'hr' ? 'hr' : "welcome");
   const [interviewData, setInterviewData] = useState<InterviewData>({ 
     jobTitle: 'Software Engineer',
     proctoringAnalysis: {
@@ -56,7 +68,7 @@ export default function InterviewPage() {
       proctoringSummary: 'No issues detected.'
     }
   });
-  const [isProctoringActive, setIsProctoringActive] = useState(false);
+  const [isProctoringActive, setIsProctoringActive] = useState(startStep === 'hr');
   const [videoDataUri, setVideoDataUri] = useState<string | null>(null);
   const { user, isUserLoading } = useUser();
   const router = useRouter();

@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowUpRight, Bot, Code, BrainCircuit } from "lucide-react";
+import { ArrowUpRight, Bot, Code, BrainCircuit, Mic } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -42,33 +42,61 @@ export default function DashboardPage() {
 
   return (
     <div className="flex flex-1 flex-col gap-4 md:gap-8">
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card className="flex flex-col">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <Card className="flex flex-col lg:col-span-1">
           <CardHeader>
             <CardTitle className="font-headline">Start a New Mock Interview</CardTitle>
             <CardDescription>
-              Test your skills with our AI-powered interview simulation.
+              Test your skills with our full AI-powered interview simulation.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex-grow">
             <p className="text-sm text-muted-foreground">
-              Our process includes three rounds: Aptitude, Technical Coding, and a simulated HR interview. Get detailed feedback and improve your performance.
+              Our process includes all three rounds: Aptitude, Technical Coding, and a simulated HR interview.
             </p>
           </CardContent>
           <CardContent>
             <Link href="/interview">
               <Button className="w-full">
-                Start New Interview
+                Start Full Interview
                 <ArrowUpRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
           </CardContent>
         </Card>
-        <Card>
+        
+        <Card className="flex flex-col lg:col-span-1">
+          <CardHeader>
+            <CardTitle className="font-headline">Practice HR Round</CardTitle>
+            <CardDescription>
+              Jump straight into the conversational HR interview.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex-grow">
+            <div className="flex items-center gap-4">
+              <div className="bg-muted p-3 rounded-md">
+                <Mic className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <p className="font-semibold">Conversational AI</p>
+                <p className="text-sm text-muted-foreground">Hone your communication skills with our AI interviewer.</p>
+              </div>
+            </div>
+          </CardContent>
+          <CardContent>
+            <Link href="/interview?start=hr">
+              <Button variant="secondary" className="w-full">
+                Practice HR Round
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+
+        <Card className="lg:col-span-1">
           <CardHeader>
             <CardTitle className="font-headline">Interview Stages</CardTitle>
             <CardDescription>
-              Our comprehensive interview process covers all bases.
+              A full interview covers all bases.
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4">
@@ -78,7 +106,7 @@ export default function DashboardPage() {
               </div>
               <div>
                 <p className="font-semibold">Aptitude Round</p>
-                <p className="text-sm text-muted-foreground">Mathematical, verbal & logical reasoning.</p>
+                <p className="text-sm text-muted-foreground">Logical & verbal reasoning.</p>
               </div>
             </div>
             <div className="flex items-center gap-4">
@@ -87,7 +115,7 @@ export default function DashboardPage() {
               </div>
               <div>
                 <p className="font-semibold">Technical Round</p>
-                <p className="text-sm text-muted-foreground">Live coding challenge with compiler.</p>
+                <p className="text-sm text-muted-foreground">Live coding challenge.</p>
               </div>
             </div>
             <div className="flex items-center gap-4">
@@ -96,7 +124,7 @@ export default function DashboardPage() {
               </div>
               <div>
                 <p className="font-semibold">HR Round</p>
-                <p className="text-sm text-muted-foreground">Conversational interview with AI HR.</p>
+                <p className="text-sm text-muted-foreground">Conversational interview.</p>
               </div>
             </div>
           </CardContent>
