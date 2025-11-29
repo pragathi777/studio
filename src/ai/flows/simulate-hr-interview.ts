@@ -29,7 +29,12 @@ const SimulateHrInterviewOutputSchema = z.object({
 type SimulateHrInterviewOutput = z.infer<typeof SimulateHrInterviewOutputSchema>;
 
 export async function simulateHrInterview(input: SimulateHrInterviewInput): Promise<SimulateHrInterviewOutput> {
-  return simulateHrInterviewFlow(input);
+  const result = await simulateHrInterviewFlow(input);
+    if (!result.nextQuestion) {
+        // Fallback in case the AI returns an empty response
+        return { nextQuestion: "Tell me about a time you had to learn a new skill quickly." };
+    }
+    return result;
 }
 
 const prompt = ai.definePrompt({

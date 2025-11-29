@@ -64,7 +64,8 @@ const HRStep: React.FC<HRStepProps> = ({ onNext }) => {
     const newConversation: ConversationTurn[] = [...conversation, { speaker: 'user', text: currentUserInput }];
     setConversation(newConversation);
     setCurrentUserInput(""); // Clear the input field
-    getAiResponse(newConversation);
+    // Add a small delay to make the user's message appear before the AI starts thinking
+    setTimeout(() => getAiResponse(newConversation), 100);
   };
   
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -108,14 +109,14 @@ const HRStep: React.FC<HRStepProps> = ({ onNext }) => {
                 onChange={(e) => setCurrentUserInput(e.target.value)}
                 onKeyDown={handleKeyDown}
                 className="h-24 bg-muted/50"
-                disabled={isLoading}
+                disabled={isLoading && conversation.length > 0}
             />
-            <Button onClick={handleSubmitAnswer} disabled={isLoading || !currentUserInput.trim()}>
+            <Button onClick={handleSubmitAnswer} disabled={(isLoading && conversation.length > 0) || !currentUserInput.trim()}>
                 <Send className="h-4 w-4" />
                 <span className="sr-only">Submit Answer</span>
             </Button>
         </div>
-        <Button onClick={() => onNext(conversation)} className="w-full mt-4" disabled={isLoading}>End Interview & Get Feedback</Button>
+        <Button onClick={() => onNext(conversation)} className="w-full mt-4" disabled={isLoading && conversation.length > 0}>End Interview & Get Feedback</Button>
       </CardFooter>
     </Card>
   );
