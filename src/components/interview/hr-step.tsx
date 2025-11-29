@@ -31,7 +31,11 @@ const HRStep: React.FC<HRStepProps> = ({ onNext }) => {
         interviewHistory: currentConversation,
       });
 
-      setConversation(prev => [...prev, { speaker: 'ai', text: response.nextQuestion }]);
+      if (response?.nextQuestion) {
+        setConversation(prev => [...prev, { speaker: 'ai', text: response.nextQuestion }]);
+      } else {
+        throw new Error("Received an empty response from the AI.");
+      }
 
     } catch (e) {
       console.error(e);
