@@ -24,7 +24,7 @@ export const Proctoring: React.FC<ProctoringProps> = ({ onVisibilityChange, onVi
     const [showWarning, setShowWarning] = useState(false);
     const [showPreview, setShowPreview] = useState(true);
     const [showConfirmation, setShowConfirmation] = useState(false);
-    const [hasConfirmed, setHasConfirmed] = useState(false); // New state to track confirmation
+    const [hasConfirmed, setHasConfirmed] = useState(false);
 
     // Handle tab/window visibility changes
     useEffect(() => {
@@ -45,7 +45,7 @@ export const Proctoring: React.FC<ProctoringProps> = ({ onVisibilityChange, onVi
     
     // Set up camera and media recorder
     useEffect(() => {
-        if (!videoStream || hasConfirmed) return; // Don't run if already confirmed
+        if (!videoStream || hasConfirmed) return;
 
         const setupRecorder = async () => {
             try {
@@ -53,8 +53,9 @@ export const Proctoring: React.FC<ProctoringProps> = ({ onVisibilityChange, onVi
                     videoRef.current.srcObject = videoStream;
                 }
 
-                if (!mediaRecorderRef.current || mediaRecorderRef.current.state === 'inactive') {
+                if (!mediaRecorderRef.current) {
                     mediaRecorderRef.current = new MediaRecorder(videoStream, { mimeType: 'video/webm' });
+                    
                     mediaRecorderRef.current.ondataavailable = (event) => {
                         if (event.data.size > 0) {
                             recordedChunksRef.current.push(event.data);
@@ -69,13 +70,16 @@ export const Proctoring: React.FC<ProctoringProps> = ({ onVisibilityChange, onVi
                             onVideoData(reader.result as string);
                         };
                         reader.readAsDataURL(blob);
+                        recordedChunksRef.current = []; // Clear chunks after processing
                     };
-                    mediaRecorderRef.current.start();
+                    mediaRecorderRef.current.start(1000); // Record in chunks
                 }
                 
                 // Show preview for 5 seconds, then show confirmation
                 const timer = setTimeout(() => {
-                    setShowConfirmation(true);
+                    if (!hasConfirmed) {
+                       setShowConfirmation(true);
+                    }
                 }, 5000);
                 
                 return () => clearTimeout(timer);
@@ -93,12 +97,13 @@ export const Proctoring: React.FC<ProctoringProps> = ({ onVisibilityChange, onVi
                 mediaRecorderRef.current?.stop();
             }
         };
-    }, [onVideoData, videoStream, hasConfirmed]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [videoStream, hasConfirmed]); // Dependency array is key here
 
     const handleConfirm = () => {
         setShowPreview(false);
         setShowConfirmation(false);
-        setHasConfirmed(true); // Set confirmation to true
+        setHasConfirmed(true); 
     };
 
     const handleDeny = () => {
