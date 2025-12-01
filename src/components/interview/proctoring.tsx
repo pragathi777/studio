@@ -24,6 +24,7 @@ export const Proctoring: React.FC<ProctoringProps> = ({ onVisibilityChange, onVi
     const [showWarning, setShowWarning] = useState(false);
     const [showPreview, setShowPreview] = useState(true);
     const [showConfirmation, setShowConfirmation] = useState(false);
+    const [hasConfirmed, setHasConfirmed] = useState(false); // New state to track confirmation
 
     // Handle tab/window visibility changes
     useEffect(() => {
@@ -44,7 +45,7 @@ export const Proctoring: React.FC<ProctoringProps> = ({ onVisibilityChange, onVi
     
     // Set up camera and media recorder
     useEffect(() => {
-        if (!videoStream) return;
+        if (!videoStream || hasConfirmed) return; // Don't run if already confirmed
 
         const setupRecorder = async () => {
             try {
@@ -52,25 +53,26 @@ export const Proctoring: React.FC<ProctoringProps> = ({ onVisibilityChange, onVi
                     videoRef.current.srcObject = videoStream;
                 }
 
-                mediaRecorderRef.current = new MediaRecorder(videoStream, { mimeType: 'video/webm' });
-                mediaRecorderRef.current.ondataavailable = (event) => {
-                    if (event.data.size > 0) {
-                        recordedChunksRef.current.push(event.data);
-                    }
-                };
-
-                mediaRecorderRef.current.onstop = () => {
-                    if (recordedChunksRef.current.length === 0) return;
-                    const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
-                    const reader = new FileReader();
-                    reader.onload = () => {
-                        onVideoData(reader.result as string);
+                if (!mediaRecorderRef.current || mediaRecorderRef.current.state === 'inactive') {
+                    mediaRecorderRef.current = new MediaRecorder(videoStream, { mimeType: 'video/webm' });
+                    mediaRecorderRef.current.ondataavailable = (event) => {
+                        if (event.data.size > 0) {
+                            recordedChunksRef.current.push(event.data);
+                        }
                     };
-                    reader.readAsDataURL(blob);
-                };
 
-                mediaRecorderRef.current.start();
-
+                    mediaRecorderRef.current.onstop = () => {
+                        if (recordedChunksRef.current.length === 0) return;
+                        const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
+                        const reader = new FileReader();
+                        reader.onload = () => {
+                            onVideoData(reader.result as string);
+                        };
+                        reader.readAsDataURL(blob);
+                    };
+                    mediaRecorderRef.current.start();
+                }
+                
                 // Show preview for 5 seconds, then show confirmation
                 const timer = setTimeout(() => {
                     setShowConfirmation(true);
@@ -91,11 +93,12 @@ export const Proctoring: React.FC<ProctoringProps> = ({ onVisibilityChange, onVi
                 mediaRecorderRef.current?.stop();
             }
         };
-    }, [onVideoData, videoStream]);
+    }, [onVideoData, videoStream, hasConfirmed]);
 
     const handleConfirm = () => {
         setShowPreview(false);
         setShowConfirmation(false);
+        setHasConfirmed(true); // Set confirmation to true
     };
 
     const handleDeny = () => {
