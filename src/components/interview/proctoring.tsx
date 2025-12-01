@@ -10,7 +10,6 @@ import { Button } from '../ui/button';
 interface ProctoringProps {
     onVisibilityChange: (status: {
         tabSwitches: number;
-        visibilityState: 'visible' | 'hidden';
     }) => void;
     onVideoData: (dataUri: string) => void;
     onEndInterview: () => void;
@@ -30,11 +29,10 @@ export const Proctoring: React.FC<ProctoringProps> = ({ onVisibilityChange, onVi
     useEffect(() => {
         const handleVisibilityChange = () => {
             if (document.hidden) {
-                setTabSwitches(prev => prev + 1);
+                const newSwitchCount = tabSwitches + 1;
+                setTabSwitches(newSwitchCount);
                 setShowWarning(true);
-                onVisibilityChange({ tabSwitches: tabSwitches + 1, visibilityState: 'hidden' });
-            } else {
-                onVisibilityChange({ tabSwitches: tabSwitches, visibilityState: 'visible' });
+                onVisibilityChange({ tabSwitches: newSwitchCount });
             }
         };
 
@@ -74,9 +72,11 @@ export const Proctoring: React.FC<ProctoringProps> = ({ onVisibilityChange, onVi
                 mediaRecorderRef.current.start();
 
                 // Show preview for 5 seconds, then show confirmation
-                setTimeout(() => {
+                const timer = setTimeout(() => {
                     setShowConfirmation(true);
                 }, 5000);
+                
+                return () => clearTimeout(timer);
 
             } catch (error) {
                 console.error("Error setting up recorder:", error);
@@ -91,7 +91,7 @@ export const Proctoring: React.FC<ProctoringProps> = ({ onVisibilityChange, onVi
                 mediaRecorderRef.current?.stop();
             }
         };
-    }, [onVideoData, onEndInterview, videoStream]);
+    }, [onVideoData, videoStream]);
 
     const handleConfirm = () => {
         setShowPreview(false);

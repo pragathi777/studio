@@ -61,10 +61,12 @@ function InterviewPageContent() {
   const startParam = searchParams.get('start');
   const { toast } = useToast();
   const videoRef = useRef<HTMLVideoElement>(null);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+
 
   const getInitialStep = (): InterviewStep => {
     if (startParam === 'hr' || startParam === 'coding' || startParam === 'aptitude') {
-      return startParam;
+      return 'welcome'; // Always start at welcome to get permissions
     }
     return 'welcome';
   }
@@ -81,34 +83,19 @@ function InterviewPageContent() {
       proctoringSummary: 'No issues detected.'
     }
   });
-  const [isProctoringActive, setIsProctoringActive] = useState(getInitialStep() !== 'welcome');
+  const [isProctoringActive, setIsProctoringActive] = useState(false);
   const [videoDataUri, setVideoDataUri] = useState<string | null>(null);
   const { user, isUserLoading } = useUser();
   const router = useRouter();
 
-  const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
-
+  const [hasPermissions, setHasPermissions] = useState<boolean | null>(null);
+  
   useEffect(() => {
-    const getCameraPermission = async () => {
-      if (currentStep === 'welcome') return;
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        setHasCameraPermission(true);
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-        }
-      } catch (error) {
-        console.error('Error accessing camera:', error);
-        setHasCameraPermission(false);
-        toast({
-          variant: 'destructive',
-          title: 'Camera Access Denied',
-          description: 'Please enable camera permissions in your browser settings to use this app.',
-        });
-      }
-    };
-    getCameraPermission();
-  }, [currentStep, toast]);
+    // Stop media tracks on component unmount
+    return () => {
+      mediaStreamRef.current?.getTracks().forEach(track => track.stop());
+    }
+  }, []);
 
 
   const updateInterviewData = (data: Partial<InterviewData>) => {
@@ -179,14 +166,30 @@ function InterviewPageContent() {
     }
   }, [isProctoringActive]);
 
-  const onStart = () => {
-    if (interviewData.isPracticeMode) {
-      setCurrentStep(startParam as InterviewStep);
-    } else {
-      setCurrentStep('aptitude');
+  const handleStart = async () => {
+     try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      mediaStreamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+      setHasPermissions(true);
+      if (interviewData.isPracticeMode) {
+        setCurrentStep(startParam as InterviewStep);
+      } else {
+        setCurrentStep('aptitude');
+      }
+      setIsProctoringActive(true);
+    } catch (error) {
+      console.error("Error accessing media devices:", error);
+      setHasPermissions(false);
+      toast({
+        variant: 'destructive',
+        title: 'Permissions Denied',
+        description: 'Please enable camera and microphone permissions in your browser settings to start the interview.',
+      });
     }
-    setIsProctoringActive(true);
-  }
+  };
 
 
   const renderStep = () => {
@@ -196,13 +199,13 @@ function InterviewPageContent() {
     if (!user) {
       return <div>Please sign in to start an interview.</div>
     }
-    if (hasCameraPermission === false && currentStep !== 'welcome') {
+    if (hasPermissions === false && currentStep !== 'welcome') {
         return (
             <Card>
                 <CardHeader>
-                    <CardTitle className="text-destructive">Camera Access Required</CardTitle>
+                    <CardTitle className="text-destructive">Permissions Required</CardTitle>
                     <CardDescription>
-                        We couldn't access your camera. Please enable camera permissions in your browser's settings for this site and refresh the page to continue.
+                        We couldn't access your camera and microphone. Please enable these permissions in your browser's settings for this site and refresh the page to continue.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -216,7 +219,7 @@ function InterviewPageContent() {
     
     switch (currentStep) {
       case "welcome":
-        return <WelcomeStep onNext={onStart} />;
+        return <WelcomeStep onNext={handleStart} />;
       case "aptitude":
         return (
           <AptitudeStep
@@ -289,7 +292,7 @@ function InterviewPageContent() {
             </Card>
         )
       default:
-        return <WelcomeStep onNext={onStart} />;
+        return <WelcomeStep onNext={handleStart} />;
     }
   };
   
@@ -314,12 +317,12 @@ function InterviewPageContent() {
           "flex-grow flex items-center justify-center",
           !isCodingStep && "p-6"
       )}>
-        {isProctoringActive && videoRef.current?.srcObject && (
+        {isProctoringActive && mediaStreamRef.current && (
             <Proctoring 
                 onVisibilityChange={handleProctoringVisibilityChange}
                 onVideoData={handleVideoData}
                 onEndInterview={handleEndInterview}
-                videoStream={videoRef.current.srcObject as MediaStream}
+                videoStream={mediaStreamRef.current}
             />
         )}
         <div className={cn(
@@ -327,12 +330,12 @@ function InterviewPageContent() {
             isCodingStep ? "h-full" : "max-w-4xl"
         )}>
           {renderStep()}
-          <video ref={videoRef} className="w-full aspect-video rounded-md absolute top-0 left-0 -z-10" autoPlay muted />
-          {hasCameraPermission === false && currentStep !== 'welcome' && (
+           <video ref={videoRef} className="w-full aspect-video rounded-md absolute top-0 left-0 -z-10" autoPlay muted />
+          {hasPermissions === false && (
               <Alert variant="destructive" className="mt-4">
-                  <AlertTitle>Camera Access Required</AlertTitle>
+                  <AlertTitle>Camera and Microphone Access Required</AlertTitle>
                   <AlertDescription>
-                      Please allow camera access to use this feature and refresh the page.
+                      Please allow camera and microphone access to use this feature and refresh the page.
                   </AlertDescription>
               </Alert>
           )}

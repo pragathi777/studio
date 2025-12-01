@@ -1,31 +1,12 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Check, ShieldAlert, Camera } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
 
 interface WelcomeStepProps {
   onNext: () => void;
 }
 
 const WelcomeStep: React.FC<WelcomeStepProps> = ({ onNext }) => {
-  const { toast } = useToast();
-
-  const handleStart = async () => {
-    try {
-        // Request camera permissions
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        // Stop the tracks immediately, we just needed to get permission.
-        stream.getTracks().forEach(track => track.stop());
-        onNext();
-    } catch (error) {
-        console.error("Camera access denied:", error);
-        toast({
-            variant: "destructive",
-            title: "Camera Access Required",
-            description: "Please enable camera permissions in your browser settings and try again."
-        })
-    }
-  };
 
   return (
     <Card className="shadow-lg">
@@ -58,7 +39,7 @@ const WelcomeStep: React.FC<WelcomeStepProps> = ({ onNext }) => {
             <ul className="space-y-3 text-muted-foreground">
                 <li className="flex items-start gap-3">
                     <Camera className="h-5 w-5 text-accent mt-1 flex-shrink-0" />
-                    <span>This session will be proctored using your camera. Please grant access when prompted.</span>
+                    <span>This session will be proctored using your camera and microphone. Please grant access when prompted.</span>
                 </li>
                 <li className="flex items-start gap-3">
                     <ShieldAlert className="h-5 w-5 text-accent mt-1 flex-shrink-0" />
@@ -72,8 +53,8 @@ const WelcomeStep: React.FC<WelcomeStepProps> = ({ onNext }) => {
         </div>
       </CardContent>
       <CardFooter>
-        <Button onClick={handleStart} className="w-full" size="lg">
-          I Understand, Let&apos;s Begin
+        <Button onClick={onNext} className="w-full" size="lg">
+          I Understand, Let's Begin
         </Button>
       </CardFooter>
     </Card>
