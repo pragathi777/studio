@@ -6,8 +6,8 @@
  * It takes the conversation history and generates the next logical question.
  *
  * - simulateHrInterview - A function that handles the HR interview simulation.
- * - SimulateHrInterviewInput - The input type for the simulateHrInterview function.
- * - SimulateHrInterviewOutput - The return type for the simulateHrInterview function.
+ * - SimulateHrInterviewInput - The input type for the simulateHrinterview function.
+ * - SimulateHrInterviewOutput - The return type for the simulateHrinterview function.
  */
 
 import {ai} from '@/ai/genkit';
