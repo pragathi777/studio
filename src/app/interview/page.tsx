@@ -55,9 +55,16 @@ export default function InterviewPage() {
 
 function InterviewPageContent() {
   const searchParams = useSearchParams();
-  const startStep = searchParams.get('start');
+  const startParam = searchParams.get('start');
 
-  const [currentStep, setCurrentStep] = useState<InterviewStep>(startStep === 'hr' ? 'hr' : "welcome");
+  const getInitialStep = (): InterviewStep => {
+    if (startParam === 'hr' || startParam === 'coding' || startParam === 'aptitude') {
+      return startParam;
+    }
+    return 'welcome';
+  }
+
+  const [currentStep, setCurrentStep] = useState<InterviewStep>(getInitialStep());
   const [interviewData, setInterviewData] = useState<InterviewData>({ 
     jobTitle: 'Software Engineer',
     proctoringAnalysis: {
@@ -68,7 +75,7 @@ function InterviewPageContent() {
       proctoringSummary: 'No issues detected.'
     }
   });
-  const [isProctoringActive, setIsProctoringActive] = useState(startStep === 'hr');
+  const [isProctoringActive, setIsProctoringActive] = useState(getInitialStep() !== 'welcome');
   const [videoDataUri, setVideoDataUri] = useState<string | null>(null);
   const { user, isUserLoading } = useUser();
   const router = useRouter();
@@ -162,7 +169,12 @@ function InterviewPageContent() {
           <AptitudeStep
             onNext={(score) => {
               updateInterviewData({ aptitudeScore: score });
-              setCurrentStep("aptitude-results");
+               if (startParam === 'aptitude') {
+                setIsProctoringActive(false);
+                setCurrentStep("feedback");
+              } else {
+                setCurrentStep("aptitude-results");
+              }
             }}
           />
         );
@@ -185,7 +197,12 @@ function InterviewPageContent() {
           <CodingStep
             onNext={(score) => {
               updateInterviewData({ codingScore: score });
-              setCurrentStep("hr");
+              if (startParam === 'coding') {
+                setIsProctoringActive(false);
+                setCurrentStep("feedback");
+              } else {
+                setCurrentStep("hr");
+              }
             }}
           />
         );

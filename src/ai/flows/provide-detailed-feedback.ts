@@ -1,16 +1,15 @@
-
 'use server';
 
 /**
  * @fileOverview A flow for providing detailed feedback to candidates after a mock interview.
- *
- * - provideDetailedFeedback - A function that generates a detailed feedback report for a candidate.
- * - ProvideDetailedFeedbackInput - The input type for the provideDetailedfeedback function.
- * - ProvideDetailedFeedbackOutput - The return type for the provideDetailedfeedback function.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { ai } from '@/ai/genkit';
+import { z } from 'genkit';
+// TODO: Import your specific model config if needed
+// import { gemini15Flash } from '@genkit-ai/googleai';
+
+// --- Schemas ---
 
 const ProvideDetailedFeedbackInputSchema = z.object({
   aptitudeScore: z.number().optional().describe("The candidate's score in the aptitude round (out of 100)."),
@@ -20,26 +19,31 @@ const ProvideDetailedFeedbackInputSchema = z.object({
     text: z.string(),
   })).optional().describe('The transcript of the HR interview.'),
   proctoringAnalysis: z.object({
-      confidenceLevel: z.number(),
-      engagementLevel: z.number(),
-      malpracticeDetected: z.boolean(),
-      tabSwitches: z.number(),
-      proctoringSummary: z.string(),
-  }).optional().describe('Analysis of proctoring data, including video analysis and tab switching.'),
+    confidenceLevel: z.number(), // assumed 0-100 or 0-1
+    engagementLevel: z.number(),
+    malpracticeDetected: z.boolean(),
+    tabSwitches: z.number(),
+    proctoringSummary: z.string(),
+  }).optional().describe('Analysis of proctoring data.'),
 });
 
-export type ProvideDetailedFeedbackInput = z.infer<
-  typeof ProvideDetailedFeedbackInputSchema
->;
+export type ProvideDetailedFeedbackInput = z.infer<typeof ProvideDetailedFeedbackInputSchema>;
 
 const ProvideDetailedFeedbackOutputSchema = z.object({
-  feedbackReport: z.string().describe('A concise feedback report in Markdown with a few key strengths and areas for improvement.'),
-  overallScore: z.number().describe("The candidate's overall weighted score for the entire interview (out of 100)."),
+  feedbackReport: z.string().describe('A concise feedback report in Markdown.'),
+  overallScore: z.number().describe("The candidate's overall weighted score (out of 100)."),
 });
 
-export type ProvideDetailedFeedbackOutput = z.infer<
-  typeof ProvideDetailedFeedbackOutputSchema
->;
+export type ProvideDetailedFeedbackOutput = z.infer<typeof ProvideDetailedFeedbackOutputSchema>;
+
+// Internal schema for what we want the AI to return specifically
+const AiAnalysisSchema = z.object({
+  hrScore: z.number().describe("A score from 0-100 based purely on the quality of the HR conversation responses."),
+  strengths: z.array(z.string()).describe("List of 2-3 key strengths."),
+  improvements: z.array(z.string()).describe("List of 2-3 areas for improvement."),
+});
+
+// --- Main Function ---
 
 export async function provideDetailedFeedback(
   input: ProvideDetailedFeedbackInput
@@ -47,48 +51,7 @@ export async function provideDetailedFeedback(
   return provideDetailedFeedbackFlow(input);
 }
 
-const prompt = ai.definePrompt({
-  name: 'provideDetailedFeedbackPrompt',
-  input: {schema: ProvideDetailedFeedbackInputSchema},
-  output: {schema: ProvideDetailedFeedbackOutputSchema},
-  prompt: `You are an AI career coach providing concise, actionable feedback after a mock interview.
-
-  **Candidate's Performance Data:**
-  - Aptitude Score: {{aptitudeScore}}%
-  - Coding Score: {{codingScore}}%
-  {{#if proctoringAnalysis}}
-  - Proctoring Flags: {{proctoringAnalysis.tabSwitches}} tab switches. {{proctoringAnalysis.proctoringSummary}}
-  {{/if}}
-  - HR Interview Transcript:
-  {{#each hrConversation}}
-    {{#if (eq speaker 'user')}}Candidate: {{else}}Interviewer: {{/if}}{{{text}}}
-  {{/each}}
-
-  **Your Task:**
-
-  1.  **Calculate Overall Score:**
-      - Weighting: HR (40%), Coding (30%), Aptitude (30%).
-      - Analyze the HR transcript for clarity, confidence, and relevance to determine a score out of 100.
-      - Apply a penalty for proctoring flags (e.g., -10 points for tab switches).
-      - Calculate the final weighted score.
-
-  2.  **Generate Feedback Report (Markdown):**
-      - **### Key Strengths:** List 2-3 bullet points on what the candidate did well.
-      - **### Areas for Improvement:** List 2-3 specific, actionable bullet points for improvement. Provide brief examples.
-      - Keep the entire report concise and easy to read.
-
-  Your tone must be supportive and expert. The goal is to provide clear insights for growth.
-  `,
-  customize: (prompt) => {
-    prompt.options = {
-      ...prompt.options,
-      helpers: {
-        eq: (a: any, b: any) => a === b,
-      },
-    };
-    return prompt;
-  },
-});
+// --- Flow Definition ---
 
 const provideDetailedFeedbackFlow = ai.defineFlow(
   {
@@ -96,8 +59,87 @@ const provideDetailedFeedbackFlow = ai.defineFlow(
     inputSchema: ProvideDetailedFeedbackInputSchema,
     outputSchema: ProvideDetailedFeedbackOutputSchema,
   },
-  async input => {
-    const {output} = await prompt(input);
-    return output!;
+  async (input) => {
+    // 1. Pre-process the transcript in TypeScript (Reliable)
+    const transcriptText = input.hrConversation
+      ? input.hrConversation.map(t => `${t.speaker === 'user' ? 'Candidate' : 'Interviewer'}: ${t.text}`).join('\n')
+      : "No HR interview recorded.";
+
+    // 2. Construct the Prompt
+    const promptText = `
+      You are an AI career coach providing feedback after a mock interview.
+      
+      **Context:**
+      - Aptitude Score: ${input.aptitudeScore || 0}%
+      - Coding Score: ${input.codingScore || 0}%
+      - Proctoring Info: ${input.proctoringAnalysis?.tabSwitches || 0} tab switches. ${input.proctoringAnalysis?.proctoringSummary || ''}
+      
+      **HR Interview Transcript:**
+      ${transcriptText}
+
+      **Task:**
+      1. Analyze the HR transcript. based on clarity, confidence, and relevance, assign a score (0-100).
+      2. Identify 2-3 specific strengths.
+      3. Identify 2-3 specific areas for improvement with actionable advice.
+      
+      Be supportive, professional, and concise.
+    `;
+
+    // 3. Call AI to get qualitative analysis
+    const { output: aiResult } = await ai.generate({
+      // model: gemini15Flash, // Uncomment and specify your model if not set globally
+      prompt: promptText,
+      output: { 
+        schema: AiAnalysisSchema,
+        format: 'json' 
+      },
+    });
+
+    if (!aiResult) {
+      throw new Error("Failed to generate AI feedback");
+    }
+
+    // 4. Calculate Final Score in TypeScript (Math is safer in code than in LLM)
+    // Weighting: HR (40%), Coding (30%), Aptitude (30%)
+    const aptitude = input.aptitudeScore || 0;
+    const coding = input.codingScore || 0;
+    const hr = aiResult.hrScore;
+
+    let calculatedScore = (aptitude * 0.3) + (coding * 0.3) + (hr * 0.4);
+
+    // Apply Penalties
+    if (input.proctoringAnalysis) {
+      // Example: Deduct 2 points per tab switch, max 20 points deduction
+      const penalty = Math.min(input.proctoringAnalysis.tabSwitches * 2, 20);
+      calculatedScore -= penalty;
+    }
+
+    // Ensure score is within 0-100
+    const finalScore = Math.max(0, Math.min(100, Math.round(calculatedScore)));
+
+    // 5. Format the Markdown Report
+    const feedbackReport = `
+### Interview Performance Summary
+
+**Scores Breakdown:**
+* **Aptitude:** ${aptitude}%
+* **Coding:** ${coding}%
+* **HR Interview:** ${hr}%
+* **Proctoring Adjustments:** ${input.proctoringAnalysis?.tabSwitches ? `-${Math.min(input.proctoringAnalysis.tabSwitches * 2, 20)} pts (Tab Switches)` : 'None'}
+
+### Key Strengths
+${aiResult.strengths.map(s => `* ${s}`).join('\n')}
+
+### Areas for Improvement
+${aiResult.improvements.map(i => `* ${i}`).join('\n')}
+
+---
+*Overall, you achieved a score of ${finalScore}/100.*
+    `.trim();
+
+    return {
+      feedbackReport,
+      overallScore: finalScore
+    };
   }
 );

@@ -42,8 +42,8 @@ export default function DashboardPage() {
 
   return (
     <div className="flex flex-1 flex-col gap-4 md:gap-8">
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <Card className="flex flex-col lg:col-span-1">
+       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card className="flex flex-col lg:col-span-4">
           <CardHeader>
             <CardTitle className="font-headline">Start a New Mock Interview</CardTitle>
             <CardDescription>
@@ -57,7 +57,7 @@ export default function DashboardPage() {
           </CardContent>
           <CardContent>
             <Link href="/interview">
-              <Button className="w-full">
+              <Button className="w-full sm:w-auto">
                 Start Full Interview
                 <ArrowUpRight className="ml-2 h-4 w-4" />
               </Button>
@@ -66,22 +66,52 @@ export default function DashboardPage() {
         </Card>
         
         <Card className="flex flex-col lg:col-span-1">
-          <CardHeader>
-            <CardTitle className="font-headline">Practice HR Round</CardTitle>
-            <CardDescription>
-              Jump straight into the conversational HR interview.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex-grow">
-            <div className="flex items-center gap-4">
-              <div className="bg-muted p-3 rounded-md">
-                <Mic className="h-6 w-6 text-primary" />
-              </div>
-              <div>
-                <p className="font-semibold">Conversational AI</p>
-                <p className="text-sm text-muted-foreground">Hone your communication skills with our AI interviewer.</p>
-              </div>
+          <CardHeader className="pb-4">
+            <div className="bg-muted p-3 rounded-md w-fit">
+                <BrainCircuit className="h-6 w-6 text-primary" />
             </div>
+          </CardHeader>
+          <CardContent className="flex-grow space-y-2">
+            <p className="font-semibold">Practice Aptitude</p>
+            <p className="text-sm text-muted-foreground">Logical & verbal reasoning.</p>
+          </CardContent>
+          <CardContent>
+            <Link href="/interview?start=aptitude">
+              <Button variant="secondary" className="w-full">
+                Practice Aptitude
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+
+        <Card className="flex flex-col lg:col-span-1">
+          <CardHeader className="pb-4">
+             <div className="bg-muted p-3 rounded-md w-fit">
+                <Code className="h-6 w-6 text-primary" />
+              </div>
+          </CardHeader>
+          <CardContent className="flex-grow space-y-2">
+            <p className="font-semibold">Practice Coding</p>
+            <p className="text-sm text-muted-foreground">Live coding challenge.</p>
+          </CardContent>
+          <CardContent>
+            <Link href="/interview?start=coding">
+              <Button variant="secondary" className="w-full">
+                Practice Coding
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+        
+        <Card className="flex flex-col lg:col-span-2">
+          <CardHeader className="pb-4">
+            <div className="bg-muted p-3 rounded-md w-fit">
+                <Mic className="h-6 w-6 text-primary" />
+            </div>
+          </CardHeader>
+          <CardContent className="flex-grow space-y-2">
+            <p className="font-semibold">Practice HR Round</p>
+            <p className="text-sm text-muted-foreground">Hone your communication skills with our AI interviewer.</p>
           </CardContent>
           <CardContent>
             <Link href="/interview?start=hr">
@@ -89,44 +119,6 @@ export default function DashboardPage() {
                 Practice HR Round
               </Button>
             </Link>
-          </CardContent>
-        </Card>
-
-        <Card className="lg:col-span-1">
-          <CardHeader>
-            <CardTitle className="font-headline">Interview Stages</CardTitle>
-            <CardDescription>
-              A full interview covers all bases.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-4">
-            <div className="flex items-center gap-4">
-              <div className="bg-muted p-3 rounded-md">
-                <BrainCircuit className="h-6 w-6 text-primary" />
-              </div>
-              <div>
-                <p className="font-semibold">Aptitude Round</p>
-                <p className="text-sm text-muted-foreground">Logical & verbal reasoning.</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="bg-muted p-3 rounded-md">
-                <Code className="h-6 w-6 text-primary" />
-              </div>
-              <div>
-                <p className="font-semibold">Technical Round</p>
-                <p className="text-sm text-muted-foreground">Live coding challenge.</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="bg-muted p-3 rounded-md">
-                <Bot className="h-6 w-6 text-primary" />
-              </div>
-              <div>
-                <p className="font-semibold">HR Round</p>
-                <p className="text-sm text-muted-foreground">Conversational interview.</p>
-              </div>
-            </div>
           </CardContent>
         </Card>
       </div>
