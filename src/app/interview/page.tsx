@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import WelcomeStep from "@/components/interview/welcome-step";
 import AptitudeStep from "@/components/interview/aptitude-step";
 import AptitudeResultsStep from "@/components/interview/aptitude-results-step";
@@ -17,6 +17,8 @@ import { Proctoring } from "@/components/interview/proctoring";
 import { analyzeFacialExpressions } from "@/ai/flows/analyze-facial-expressions";
 import { useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useToast } from "@/hooks/use-toast";
 
 type AnalyzeFacialExpressionsOutput = {
     confidenceLevel: number;
@@ -57,6 +59,8 @@ export default function InterviewPage() {
 function InterviewPageContent() {
   const searchParams = useSearchParams();
   const startParam = searchParams.get('start');
+  const { toast } = useToast();
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   const getInitialStep = (): InterviewStep => {
     if (startParam === 'hr' || startParam === 'coding' || startParam === 'aptitude') {
@@ -81,6 +85,30 @@ function InterviewPageContent() {
   const [videoDataUri, setVideoDataUri] = useState<string | null>(null);
   const { user, isUserLoading } = useUser();
   const router = useRouter();
+
+  const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const getCameraPermission = async () => {
+      if (currentStep === 'welcome') return;
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        setHasCameraPermission(true);
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+      } catch (error) {
+        console.error('Error accessing camera:', error);
+        setHasCameraPermission(false);
+        toast({
+          variant: 'destructive',
+          title: 'Camera Access Denied',
+          description: 'Please enable camera permissions in your browser settings to use this app.',
+        });
+      }
+    };
+    getCameraPermission();
+  }, [currentStep, toast]);
 
 
   const updateInterviewData = (data: Partial<InterviewData>) => {
@@ -151,6 +179,15 @@ function InterviewPageContent() {
     }
   }, [isProctoringActive]);
 
+  const onStart = () => {
+    if (interviewData.isPracticeMode) {
+      setCurrentStep(startParam as InterviewStep);
+    } else {
+      setCurrentStep('aptitude');
+    }
+    setIsProctoringActive(true);
+  }
+
 
   const renderStep = () => {
     if (isUserLoading) {
@@ -159,13 +196,27 @@ function InterviewPageContent() {
     if (!user) {
       return <div>Please sign in to start an interview.</div>
     }
+    if (hasCameraPermission === false && currentStep !== 'welcome') {
+        return (
+            <Card>
+                <CardHeader>
+                    <CardTitle className="text-destructive">Camera Access Required</CardTitle>
+                    <CardDescription>
+                        We couldn't access your camera. Please enable camera permissions in your browser's settings for this site and refresh the page to continue.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                     <Button asChild>
+                        <Link href="/dashboard">Back to Dashboard</Link>
+                    </Button>
+                </CardContent>
+            </Card>
+        )
+    }
     
     switch (currentStep) {
       case "welcome":
-        return <WelcomeStep onNext={() => {
-          setIsProctoringActive(true);
-          setCurrentStep("aptitude");
-        }} />;
+        return <WelcomeStep onNext={onStart} />;
       case "aptitude":
         return (
           <AptitudeStep
@@ -238,7 +289,7 @@ function InterviewPageContent() {
             </Card>
         )
       default:
-        return <WelcomeStep onNext={() => setCurrentStep("aptitude")} />;
+        return <WelcomeStep onNext={onStart} />;
     }
   };
   
@@ -263,18 +314,28 @@ function InterviewPageContent() {
           "flex-grow flex items-center justify-center",
           !isCodingStep && "p-6"
       )}>
-        {isProctoringActive && (
+        {isProctoringActive && videoRef.current?.srcObject && (
             <Proctoring 
                 onVisibilityChange={handleProctoringVisibilityChange}
                 onVideoData={handleVideoData}
                 onEndInterview={handleEndInterview}
+                videoStream={videoRef.current.srcObject as MediaStream}
             />
         )}
         <div className={cn(
-            "w-full mx-auto",
+            "w-full mx-auto relative",
             isCodingStep ? "h-full" : "max-w-4xl"
         )}>
           {renderStep()}
+          <video ref={videoRef} className="w-full aspect-video rounded-md absolute top-0 left-0 -z-10" autoPlay muted />
+          {hasCameraPermission === false && currentStep !== 'welcome' && (
+              <Alert variant="destructive" className="mt-4">
+                  <AlertTitle>Camera Access Required</AlertTitle>
+                  <AlertDescription>
+                      Please allow camera access to use this feature and refresh the page.
+                  </AlertDescription>
+              </Alert>
+          )}
         </div>
       </main>
     </div>

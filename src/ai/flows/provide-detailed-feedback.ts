@@ -6,6 +6,8 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
+// TODO: Import your specific model here. 
+// import { gemini15Flash } from '@genkit-ai/googleai'; 
 
 // --- Schemas ---
 
@@ -17,7 +19,7 @@ const ProvideDetailedFeedbackInputSchema = z.object({
     text: z.string(),
   })).optional().describe('The transcript of the HR interview.'),
   proctoringAnalysis: z.object({
-    confidenceLevel: z.number(), // assumed 0-100 or 0-1
+    confidenceLevel: z.number(), 
     engagementLevel: z.number(),
     malpracticeDetected: z.boolean(),
     tabSwitches: z.number(),
@@ -34,9 +36,9 @@ const ProvideDetailedFeedbackOutputSchema = z.object({
 
 export type ProvideDetailedFeedbackOutput = z.infer<typeof ProvideDetailedFeedbackOutputSchema>;
 
-// Internal schema for what we want the AI to return specifically
+// Internal schema for the AI's qualitative analysis
 const AiAnalysisSchema = z.object({
-  hrScore: z.number().optional().describe("A score from 0-100 based purely on the quality of the HR conversation responses."),
+  hrScore: z.number().optional().describe("A score from 0-100 based purely on the quality of the HR conversation responses. 0 if no HR data."),
   strengths: z.array(z.string()).describe("List of 2-3 key strengths."),
   improvements: z.array(z.string()).describe("List of 2-3 areas for improvement."),
 });
@@ -49,61 +51,6 @@ export async function provideDetailedFeedback(
   return provideDetailedFeedbackFlow(input);
 }
 
-// --- Prompt ---
-
-const prompt = ai.definePrompt({
-  name: 'provideDetailedFeedbackPrompt',
-  input: {schema: ProvideDetailedFeedbackInputSchema},
-  output: {schema: AiAnalysisSchema},
-  prompt: `You are an AI career coach providing feedback after a mock interview.
-  
-  **Your Task:**
-  Analyze the provided data and generate a feedback report. The structure of the report depends on the data provided.
-
-  - **If data for multiple rounds is present (e.g., Aptitude AND Coding OR HR):**
-    1.  Analyze the HR transcript for clarity, confidence, and relevance, and assign an \`hrScore\` out of 100.
-    2.  Identify 2-3 specific strengths across all provided rounds.
-    3.  Identify 2-3 specific areas for improvement with actionable advice across all rounds.
-    4.  Your response should cover the full interview performance.
-
-  - **If data for ONLY ONE round is present:**
-    1.  Focus your entire analysis on that single round.
-    2.  If it's the HR round, assign an \`hrScore\`.
-    3.  Identify 2-3 strengths specific to that round's performance.
-    4.  Identify 2-3 areas for improvement specific to that round.
-  
-  Be supportive, professional, and concise.
-
-  ---
-  **Candidate's Performance Data:**
-  {{#if aptitudeScore}}
-  - Aptitude Score: {{aptitudeScore}}%
-  {{/if}}
-  {{#if codingScore}}
-  - Coding Score: {{codingScore}}%
-  {{/if}}
-  {{#if proctoringAnalysis}}
-  - Proctoring Flags: {{proctoringAnalysis.tabSwitches}} tab switches. {{proctoringAnalysis.proctoringSummary}}
-  {{/if}}
-  {{#if hrConversation}}
-  - HR Interview Transcript:
-  {{#each hrConversation}}
-    {{#if (eq speaker 'user')}}Candidate: {{else}}Interviewer: {{/if}}{{{text}}}
-  {{/each}}
-  {{/if}}
-  `,
-  customize: (prompt) => {
-    prompt.options = {
-      ...prompt.options,
-      helpers: {
-        eq: (a: any, b: any) => a === b,
-      },
-    };
-    return prompt;
-  },
-});
-
-
 // --- Flow Definition ---
 
 const provideDetailedFeedbackFlow = ai.defineFlow(
@@ -114,56 +61,116 @@ const provideDetailedFeedbackFlow = ai.defineFlow(
   },
   async (input) => {
     
-    // Call AI to get qualitative analysis and HR score
-    const {output: aiResult} = await prompt(input);
+    // 1. PRE-PROCESS DATA IN TYPESCRIPT
+    // Instead of using Handlebars helpers, we format the string here.
+    // This is 100% reliable and avoids the "unknown helper eq" error.
+    
+    const transcriptText = input.hrConversation && input.hrConversation.length > 0
+      ? input.hrConversation.map(t => `${t.speaker === 'user' ? 'Candidate' : 'Interviewer'}: ${t.text}`).join('\n')
+      : "No HR interview was conducted.";
+
+    const aptitudeText = input.aptitudeScore !== undefined 
+      ? `- Aptitude Score: ${input.aptitudeScore}%` 
+      : '- Aptitude Score: Not attempted';
+
+    const codingText = input.codingScore !== undefined 
+      ? `- Coding Score: ${input.codingScore}%` 
+      : '- Coding Score: Not attempted';
+
+    const proctoringText = input.proctoringAnalysis 
+      ? `- Proctoring Flags: ${input.proctoringAnalysis.tabSwitches} tab switches. ${input.proctoringAnalysis.proctoringSummary}`
+      : '- Proctoring: No data.';
+
+    // 2. CONSTRUCT PROMPT MANUALLY
+    const promptText = `
+      You are an AI career coach providing feedback after a mock interview.
+      
+      **Candidate's Performance Data:**
+      ${aptitudeText}
+      ${codingText}
+      ${proctoringText}
+      
+      **HR Interview Transcript:**
+      ${transcriptText}
+
+      **Your Task:**
+      Analyze the provided data and generate a feedback report.
+      
+      1. If an HR transcript is present, analyze it for clarity, confidence, and relevance, and assign an 'hrScore' (0-100).
+      2. Identify 2-3 specific strengths based on the available data.
+      3. Identify 2-3 specific areas for improvement with actionable advice.
+      
+      Be supportive, professional, and concise.
+    `;
+
+    // 3. CALL AI (Using generate directly avoids template issues)
+    const { output: aiResult } = await ai.generate({
+      // model: gemini15Flash, // Un-comment and set your model if needed
+      prompt: promptText,
+      output: { 
+        schema: AiAnalysisSchema,
+        format: 'json' 
+      },
+    });
 
     if (!aiResult) {
       throw new Error("Failed to generate AI feedback");
     }
 
-    const isFullInterview = [input.aptitudeScore, input.codingScore, input.hrConversation].filter(Boolean).length > 1;
+    // 4. CALCULATE SCORES (Logic kept in TS for accuracy)
+    
+    // Check if we have data for more than one round
+    const roundsPresent = [
+      input.aptitudeScore !== undefined, 
+      input.codingScore !== undefined, 
+      input.hrConversation && input.hrConversation.length > 0
+    ].filter(Boolean).length;
+
+    const isFullInterview = roundsPresent > 1;
 
     let finalScore = 0;
     let reportTitle = "Interview Performance Summary";
     let scoreBreakdown = '';
-    
+
     if (isFullInterview) {
-      // Calculate weighted score for a full interview
+      // Full Interview Logic
       const aptitude = input.aptitudeScore || 0;
       const coding = input.codingScore || 0;
       const hr = aiResult.hrScore || 0;
+      
+      // Weighting: HR (40%), Coding (30%), Aptitude (30%)
+      // Note: If a round is missing (0), it pulls the average down, which is expected for a "Full" interview check.
       let calculatedScore = (aptitude * 0.3) + (coding * 0.3) + (hr * 0.4);
 
       if (input.proctoringAnalysis) {
         const penalty = Math.min(input.proctoringAnalysis.tabSwitches * 2, 20);
         calculatedScore -= penalty;
       }
-      finalScore = Math.max(0, Math.min(100, Math.round(calculatedScore)));
       
+      finalScore = Math.max(0, Math.min(100, Math.round(calculatedScore)));
+
       scoreBreakdown = `
 **Scores Breakdown:**
-* **Aptitude:** ${aptitude}%
-* **Coding:** ${coding}%
+* **Aptitude:** ${input.aptitudeScore !== undefined ? input.aptitudeScore + '%' : 'N/A'}
+* **Coding:** ${input.codingScore !== undefined ? input.codingScore + '%' : 'N/A'}
 * **HR Interview:** ${hr}%
-* **Proctoring Adjustments:** ${input.proctoringAnalysis?.tabSwitches ? `-${Math.min(input.proctoringAnalysis.tabSwitches * 2, 20)} pts (Tab Switches)` : 'None'}
+* **Proctoring Adjustments:** ${input.proctoringAnalysis?.tabSwitches ? `-${Math.min(input.proctoringAnalysis.tabSwitches * 2, 20)} pts` : 'None'}
 `;
-
     } else {
-        // For single practice rounds, the score is just that round's score
-        reportTitle = "Practice Round Summary";
-        if (input.aptitudeScore !== undefined) {
-             finalScore = input.aptitudeScore;
-             reportTitle = "Aptitude Practice Summary";
-        } else if (input.codingScore !== undefined) {
-            finalScore = input.codingScore;
-            reportTitle = "Coding Practice Summary";
-        } else if (input.hrConversation) {
-            finalScore = aiResult.hrScore || 0;
-            reportTitle = "HR Practice Summary";
-        }
+      // Single Round Logic
+      if (input.aptitudeScore !== undefined) {
+        finalScore = input.aptitudeScore;
+        reportTitle = "Aptitude Practice Summary";
+      } else if (input.codingScore !== undefined) {
+        finalScore = input.codingScore;
+        reportTitle = "Coding Practice Summary";
+      } else if (input.hrConversation && input.hrConversation.length > 0) {
+        finalScore = aiResult.hrScore || 0;
+        reportTitle = "HR Practice Summary";
+      }
     }
 
-
+    // 5. FORMAT FINAL REPORT
     const feedbackReport = `
 ### ${reportTitle}
 ${isFullInterview ? `#### Overall Score: ${finalScore}/100` : ''}

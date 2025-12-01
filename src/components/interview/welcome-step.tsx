@@ -1,20 +1,29 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Check, ShieldAlert, Camera } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface WelcomeStepProps {
   onNext: () => void;
 }
 
 const WelcomeStep: React.FC<WelcomeStepProps> = ({ onNext }) => {
+  const { toast } = useToast();
+
   const handleStart = async () => {
     try {
         // Request camera permissions
-        await navigator.mediaDevices.getUserMedia({ video: true });
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        // Stop the tracks immediately, we just needed to get permission.
+        stream.getTracks().forEach(track => track.stop());
         onNext();
     } catch (error) {
         console.error("Camera access denied:", error);
-        alert("Camera access is required for the proctored interview. Please enable it in your browser settings and refresh the page.");
+        toast({
+            variant: "destructive",
+            title: "Camera Access Required",
+            description: "Please enable camera permissions in your browser settings and try again."
+        })
     }
   };
 

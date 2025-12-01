@@ -14,9 +14,10 @@ interface ProctoringProps {
     }) => void;
     onVideoData: (dataUri: string) => void;
     onEndInterview: () => void;
+    videoStream: MediaStream;
 }
 
-export const Proctoring: React.FC<ProctoringProps> = ({ onVisibilityChange, onVideoData, onEndInterview }) => {
+export const Proctoring: React.FC<ProctoringProps> = ({ onVisibilityChange, onVideoData, onEndInterview, videoStream }) => {
     const videoRef = useRef<HTMLVideoElement>(null);
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const recordedChunksRef = useRef<Blob[]>([]);
@@ -45,16 +46,15 @@ export const Proctoring: React.FC<ProctoringProps> = ({ onVisibilityChange, onVi
     
     // Set up camera and media recorder
     useEffect(() => {
-        let stream: MediaStream | null = null;
+        if (!videoStream) return;
 
-        const setupCamera = async () => {
+        const setupRecorder = async () => {
             try {
-                stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
                 if (videoRef.current) {
-                    videoRef.current.srcObject = stream;
+                    videoRef.current.srcObject = videoStream;
                 }
 
-                mediaRecorderRef.current = new MediaRecorder(stream, { mimeType: 'video/webm' });
+                mediaRecorderRef.current = new MediaRecorder(videoStream, { mimeType: 'video/webm' });
                 mediaRecorderRef.current.ondataavailable = (event) => {
                     if (event.data.size > 0) {
                         recordedChunksRef.current.push(event.data);
@@ -79,22 +79,19 @@ export const Proctoring: React.FC<ProctoringProps> = ({ onVisibilityChange, onVi
                 }, 5000);
 
             } catch (error) {
-                console.error("Error setting up camera:", error);
-                alert("Camera access is required. Please enable it and refresh.");
-                onEndInterview();
+                console.error("Error setting up recorder:", error);
             }
         };
 
-        setupCamera();
+        setupRecorder();
 
         // Cleanup on unmount
         return () => {
             if (mediaRecorderRef.current?.state === 'recording') {
                 mediaRecorderRef.current?.stop();
             }
-            stream?.getTracks().forEach(track => track.stop());
         };
-    }, [onVideoData, onEndInterview]);
+    }, [onVideoData, onEndInterview, videoStream]);
 
     const handleConfirm = () => {
         setShowPreview(false);
