@@ -1,17 +1,8 @@
 
 'use server';
 
-/**
- * @fileOverview Simulates a one-on-one HR interview. This is a TEXT-ONLY flow.
- * It takes the conversation history and generates the next logical question.
- *
- * - simulateHrInterview - A function that handles the HR interview simulation.
- * - SimulateHrInterviewInput - The input type for the simulateHrinterview function.
- * - SimulateHrInterviewOutput - The return type for the simulateHrinterview function.
- */
-
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { ai } from '@/ai/genkit';
+import { z } from 'genkit';
 
 const SimulateHrInterviewInputSchema = z.object({
   candidateName: z.string().describe('The name of the candidate.'),
@@ -19,70 +10,78 @@ const SimulateHrInterviewInputSchema = z.object({
   interviewHistory: z.array(z.object({
     speaker: z.enum(['user', 'ai']),
     text: z.string(),
-  })).describe('The history of the conversation so far, including the latest user response.'),
+  })).describe('The history of the conversation so far.'),
 });
+
 type SimulateHrInterviewInput = z.infer<typeof SimulateHrInterviewInputSchema>;
 
 const SimulateHrInterviewOutputSchema = z.object({
   nextQuestion: z.string().describe('The next question to ask the candidate.'),
 });
+
 type SimulateHrInterviewOutput = z.infer<typeof SimulateHrInterviewOutputSchema>;
 
 export async function simulateHrInterview(input: SimulateHrInterviewInput): Promise<SimulateHrInterviewOutput> {
-  const result = await simulateHrInterviewFlow(input);
-    if (!result.nextQuestion) {
-        // Fallback in case the AI returns an empty response
-        return { nextQuestion: "Tell me about a time you had to learn a new skill quickly." };
+  // We call the flow, but we also wrap it in a try/catch to ensure we always return a fallback
+  try {
+    const result = await simulateHrInterviewFlow(input);
+    if (!result || !result.nextQuestion) {
+      throw new Error("Empty response from AI");
     }
     return result;
+  } catch (error) {
+    console.error("AI Generation Error:", error);
+    return { nextQuestion: "Could you tell me about a time you had to learn a new skill quickly?" };
+  }
 }
 
-const prompt = ai.definePrompt({
-  name: 'simulateHrInterviewPrompt',
-  input: {
-    schema: SimulateHrInterviewInputSchema,
-  },
-  output: {
-    schema: SimulateHrInterviewOutputSchema,
-  },
-  prompt: `You are an expert HR interviewer for a top tech company in India.
-
-  Your task is to conduct a one-on-one interview. Your goal is to assess their suitability for the role, their skills, and their cultural fit.
-  You should ask relevant questions based on the candidate's profile, the job title they are applying for, and the conversation history.
-  
-  Be conversational, and ask insightful follow-up questions to probe deeper into the candidate's knowledge and experience. Your questions should feel natural and adapt to the flow of the conversation.
-
-  Candidate Name: {{{candidateName}}}
-  Job Title: {{{jobTitle}}}
-  
-  Conversation History:
-  {{#each interviewHistory}}
-    {{#if (eq speaker 'user')}}Candidate:{{else}}Interviewer:{{/if}} {{{text}}}
-  {{/each}}
-  
-  Based on the entire context (especially the candidate's last answer), what is the single most relevant and insightful next question you should ask?
-  If the history is empty, provide a welcoming opening question like "Hello, can you start by telling me a little bit about yourself?".
-  Do not greet them or add any conversational filler if the interview has already started. Just provide the next question.
-  `,
-  customize: (prompt) => {
-    prompt.options = {
-      ...prompt.options,
-      helpers: {
-        eq: (a: any, b: any) => a === b,
-      },
-    };
-    return prompt;
-  },
-});
-
+// We define the flow, but we perform the logic in Typescript rather than the Prompt Template
+// for better reliability.
 const simulateHrInterviewFlow = ai.defineFlow(
   {
     name: 'simulateHrInterviewFlow',
     inputSchema: SimulateHrInterviewInputSchema,
     outputSchema: SimulateHrInterviewOutputSchema,
   },
-  async input => {
-    const {output} = await prompt(input);
-    return output!;
+  async (input) => {
+    // 1. Pre-process the history in TypeScript (Safer than Handlebars helpers)
+    const conversationText = input.interviewHistory.map(entry => 
+      `${entry.speaker === 'user' ? 'Candidate' : 'Interviewer'}: ${entry.text}`
+    ).join('\n');
+
+    // 2. Construct the prompt text dynamically
+    const promptText = `
+      You are an expert HR interviewer for a top tech company in India.
+      Your task is to conduct a one-on-one interview. Your goal is to assess their suitability for the role, their skills, and their cultural fit.
+      
+      Candidate Name: ${input.candidateName}
+      Job Title: ${input.jobTitle}
+      
+      Conversation History:
+      ${conversationText}
+      
+      Instructions:
+      - Based on the context (especially the candidate's last answer), determine the single most relevant and insightful next question.
+      - Be conversational but professional.
+      - If the history is empty, provide a welcoming opening question like "Hello, can you start by telling me a little bit about yourself?".
+      - Do not greet them again if the interview has already started.
+    `;
+
+    // 3. Use ai.generate directly. This is the most reliable method.
+    const { output } = await ai.generate({
+      // IMPORTANT: You should specify your model here if it's not set as default in your generic 'ai' config.
+      // model: 'googleai/gemini-1.5-flash', 
+      prompt: promptText,
+      output: { 
+        schema: SimulateHrInterviewOutputSchema, 
+        format: 'json' // Enforce JSON output for reliability
+      },
+    });
+
+    if (!output) {
+      throw new Error("Failed to generate output");
+    }
+
+    return output;
   }
 );
