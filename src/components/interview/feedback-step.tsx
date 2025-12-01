@@ -14,6 +14,7 @@ import Link from "next/link";
 import { useFirestore } from "@/firebase/provider";
 import { collection, serverTimestamp } from "firebase/firestore";
 import { addDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import Markdown from "../markdown";
 
 
 interface FeedbackStepProps {
@@ -41,22 +42,27 @@ const FeedbackStep: React.FC<FeedbackStepProps> = ({ interviewData, userId }) =>
         });
         setFeedbackResult(result);
 
-        const sessionData = {
-          userId,
-          jobTitle: interviewData.jobTitle,
-          startTime: serverTimestamp(),
-          endTime: serverTimestamp(),
-          overallScore: result.overallScore,
-          aptitudeScore: interviewData.aptitudeScore ?? null,
-          codingScore: interviewData.codingScore ?? null,
-          feedbackReport: result.feedbackReport,
-          hrConversation: interviewData.hrConversation ?? null,
-          proctoringAnalysis: interviewData.proctoringAnalysis ?? null,
-        };
-        
-        const interviewSessionsRef = collection(firestore, 'users', userId, 'interviewSessions');
-        await addDocumentNonBlocking(interviewSessionsRef, sessionData);
-        setIsSaved(true);
+        // Only save if it's not a practice round or if we want to save practice attempts
+        if (!interviewData.isPracticeMode) {
+          const sessionData = {
+            userId,
+            jobTitle: interviewData.jobTitle,
+            startTime: serverTimestamp(),
+            endTime: serverTimestamp(),
+            overallScore: result.overallScore,
+            aptitudeScore: interviewData.aptitudeScore ?? null,
+            codingScore: interviewData.codingScore ?? null,
+            feedbackReport: result.feedbackReport,
+            hrConversation: interviewData.hrConversation ?? null,
+            proctoringAnalysis: interviewData.proctoringAnalysis ?? null,
+          };
+          
+          const interviewSessionsRef = collection(firestore, 'users', userId, 'interviewSessions');
+          await addDocumentNonBlocking(interviewSessionsRef, sessionData);
+          setIsSaved(true);
+        } else {
+            setIsSaved(true); // Mark as "saved" to prevent re-running, even though we didn't save.
+        }
 
       } catch (error) {
         console.error("Failed to generate or save feedback:", error);
@@ -72,23 +78,12 @@ const FeedbackStep: React.FC<FeedbackStepProps> = ({ interviewData, userId }) =>
     getFeedbackAndSave();
   }, [interviewData, userId, firestore, isSaved]);
 
-  const renderMarkdown = (markdown: string) => {
-    // A simple markdown to JSX renderer
-    return markdown.split('\n').map((line, index) => {
-        if (line.startsWith('### ')) return <h3 key={index} className="text-lg font-semibold mt-4 mb-2 text-foreground">{line.substring(4)}</h3>;
-        if (line.startsWith('**')) return <p key={index} className="my-1"><strong className="font-semibold text-foreground">{line.replace(/\*\*/g, '')}</strong></p>;
-        if (line.startsWith('- ')) return <li key={index} className="list-disc ml-6">{line.substring(2)}</li>;
-        if (line.trim() === '') return <br key={index} />;
-        return <p key={index} className="my-1">{line}</p>;
-    });
-};
-
 
   if (isLoading) {
     return (
       <div className="flex flex-col items-center gap-4">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="text-muted-foreground">Analyzing your performance and generating final report...</p>
+        <p className="text-muted-foreground">Analyzing your performance and generating your report...</p>
       </div>
     );
   }
@@ -102,31 +97,35 @@ const FeedbackStep: React.FC<FeedbackStepProps> = ({ interviewData, userId }) =>
       <CardContent className="space-y-6">
         <Card>
             <CardHeader>
-                <CardTitle className="text-xl">Overall Score: {feedbackResult?.overallScore?.toFixed(0) ?? 'N/A'}/100</CardTitle>
+                 <CardTitle className="text-xl">
+                    {interviewData.isPracticeMode ? "Practice Score" : "Overall Score"}: {feedbackResult?.overallScore?.toFixed(0) ?? 'N/A'}/100
+                </CardTitle>
             </CardHeader>
-            <CardContent className="grid md:grid-cols-2 gap-6">
-                <div>
+             {interviewData.aptitudeScore !== undefined && (
+                 <CardContent>
                     <Label>Aptitude Round</Label>
                     <Progress value={interviewData.aptitudeScore ?? 0} className="mt-1" />
                     <p className="text-sm text-muted-foreground mt-1">{interviewData.aptitudeScore?.toFixed(0) ?? 'N/A'}%</p>
-                </div>
-                <div>
+                </CardContent>
+            )}
+            {interviewData.codingScore !== undefined && (
+                <CardContent>
                     <Label>Coding Round</Label>
                     <Progress value={interviewData.codingScore ?? 0} className="mt-1" />
                      <p className="text-sm text-muted-foreground mt-1">{interviewData.codingScore?.toFixed(0) ?? 'N/A'}%</p>
-                </div>
-                 <div className="md:col-span-2">
-                    <Label>Proctoring Analysis</Label>
-                    <div className="flex flex-wrap gap-2 mt-2">
-                        {interviewData.proctoringAnalysis?.malpracticeDetected ? (
-                           <Badge variant="destructive"><AlertTriangle className="mr-1 h-3 w-3" /> Malpractice Flagged</Badge>
-                        ) : (
-                            <Badge variant="secondary">No Issues Detected</Badge>
-                        )}
-                        <Badge variant="outline">Confidence: {((interviewData.proctoringAnalysis?.confidenceLevel ?? 0) * 100).toFixed(0)}%</Badge>
-                        <Badge variant="outline">Engagement: {((interviewData.proctoringAnalysis?.engagementLevel ?? 0) * 100).toFixed(0)}%</Badge>
-                        <Badge variant="outline">Tab Switches: {interviewData.proctoringAnalysis?.tabSwitches ?? 0}</Badge>
-                    </div>
+                </CardContent>
+            )}
+             <CardContent className="md:col-span-2">
+                <Label>Proctoring Analysis</Label>
+                <div className="flex flex-wrap gap-2 mt-2">
+                    {interviewData.proctoringAnalysis?.malpracticeDetected ? (
+                       <Badge variant="destructive"><AlertTriangle className="mr-1 h-3 w-3" /> Malpractice Flagged</Badge>
+                    ) : (
+                        <Badge variant="secondary">No Issues Detected</Badge>
+                    )}
+                    <Badge variant="outline">Confidence: {((interviewData.proctoringAnalysis?.confidenceLevel ?? 0) * 100).toFixed(0)}%</Badge>
+                    <Badge variant="outline">Engagement: {((interviewData.proctoringAnalysis?.engagementLevel ?? 0) * 100).toFixed(0)}%</Badge>
+                    <Badge variant="outline">Tab Switches: {interviewData.proctoringAnalysis?.tabSwitches ?? 0}</Badge>
                 </div>
             </CardContent>
         </Card>
@@ -134,8 +133,8 @@ const FeedbackStep: React.FC<FeedbackStepProps> = ({ interviewData, userId }) =>
             <CardHeader>
                 <CardTitle className="text-xl">AI Feedback & Suggestions</CardTitle>
             </CardHeader>
-            <CardContent className="prose dark:prose-invert max-w-none text-sm text-muted-foreground">
-                {feedbackResult ? renderMarkdown(feedbackResult.feedbackReport) : 'No feedback available.'}
+            <CardContent>
+                <Markdown content={feedbackResult?.feedbackReport} />
             </CardContent>
         </Card>
       </CardContent>

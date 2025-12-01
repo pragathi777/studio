@@ -36,6 +36,7 @@ export type ProctoringAnalysis = AnalyzeFacialExpressionsOutput & {
 
 export type InterviewData = {
   jobTitle: string;
+  isPracticeMode: boolean;
   aptitudeScore?: number;
   codingScore?: number;
   hrConversation?: HRConversation;
@@ -67,6 +68,7 @@ function InterviewPageContent() {
   const [currentStep, setCurrentStep] = useState<InterviewStep>(getInitialStep());
   const [interviewData, setInterviewData] = useState<InterviewData>({ 
     jobTitle: 'Software Engineer',
+    isPracticeMode: !!startParam,
     proctoringAnalysis: {
       confidenceLevel: 0,
       engagementLevel: 0,
@@ -169,7 +171,7 @@ function InterviewPageContent() {
           <AptitudeStep
             onNext={(score) => {
               updateInterviewData({ aptitudeScore: score });
-               if (startParam === 'aptitude') {
+               if (interviewData.isPracticeMode) {
                 setIsProctoringActive(false);
                 setCurrentStep("feedback");
               } else {
@@ -197,7 +199,7 @@ function InterviewPageContent() {
           <CodingStep
             onNext={(score) => {
               updateInterviewData({ codingScore: score });
-              if (startParam === 'coding') {
+              if (interviewData.isPracticeMode) {
                 setIsProctoringActive(false);
                 setCurrentStep("feedback");
               } else {
